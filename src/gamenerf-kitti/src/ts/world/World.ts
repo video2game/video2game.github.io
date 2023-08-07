@@ -49,8 +49,11 @@ import {Geometry, Face3} from 'three/examples/jsm/deprecated/Geometry'
 // app.use(cors());
 
 const SCALE = 34.77836216;
-const external = 'https://shenlonggroup.s3.amazonaws.com/nerf_models+2/'
+const external = 'https://huggingface.co/hongchi/video2game_v1.0/resolve/main/'
+// const external = './nerf_models/'
+// const external = 'https://shenlonggroup.s3.amazonaws.com/nerf_models+2/'
 const origin = 'https://shenlonggroup.s3.amazonaws.com/'
+
 
 
 
@@ -94,6 +97,8 @@ export class World
 	public frac_rot_values=[];
 	public frac_translate_values=[];
 	public frac_meshes=[];
+	public frac_meshes_start_break=[];
+	public full_meshes=[];
 	public frac_meshes_sorted=[];
 	public frac_scale=[];
 	public frac_translate=[];
@@ -115,6 +120,8 @@ export class World
 	public fy;
 	public cx;
 	public cy;
+	public progressBar;
+	public progress={};
 
 	private lastScenarioID: string;
 
@@ -250,23 +257,27 @@ export class World
 		for(let i=0; i < this.kitti_uvmodel_num;i++){
 			this.kitti_uv_models_loaded.push(false);
 		}
-		this.init_uvmapping(this, external+'uv_kitti_4096_depthmono_larger/4240-4314-contract/', 0, 1.006);
-		this.init_uvmapping(this, external+'uv_kitti_4096_depthmono_larger/4290-4364-contract/', 1, 1.001);
-		this.init_uvmapping(this, external+'uv_kitti_4096_depthmono_larger/6354-6433-contract/', 2, 1.002);
-		this.init_uvmapping(this, external+'uv_kitti_4096_depthmono_larger/6414-6493-contract/', 3, 1.003);
-		this.init_uvmapping(this, external+'uv_kitti_4096_depthmono_larger/6474-6553-contract/', 4, 1.004);
-		this.init_uvmapping(this, external+'uv_kitti_4096_depthmono_larger/6498-6577-contract/', 5, 1.005);
-		this.init_uvmapping(this, external+'uv_kitti_4096_depthmono_larger/10919-11000-contract/', 9, 1.);
-		this.init_uvmapping(this, external+'uv_kitti_4096_depthmono_larger/10980-11050-contract/', 1, 1.001);
-		this.init_uvmapping(this, external+'uv_kitti_4096_depthmono_larger/7606-7665-contract/', 6, 0.996);
-		this.init_uvmapping(this, external+'uv_kitti_4096_depthmono_larger/7646-7715-contract/', 7, 0.997);
-		this.init_uvmapping(this, external+'uv_kitti_4096_depthmono_larger/7700-7770-contract/', 8, 0.998);
-		this.init_uvmapping(this, external+'uv_kitti_4096_depthmono_larger/7606-7665-contract-p2/', 15);
-		this.init_uvmapping(this, external+'uv_kitti_4096_depthmono_larger/corner-4325-4382-6338-6395-contract/', 11, 1.007);
-		this.init_uvmapping(this, external+'uv_kitti_4096_depthmono_larger/corner-7735-7782-4228-4275-contract/', 12, 1.008);
-		this.init_uvmapping(this, external+'uv_kitti_4096_depthmono_larger/corner-11020-11077-7580-7640-contract/', 13, 1.011);
-		this.init_uvmapping(this, external+'uv_kitti_4096_depthmono_larger/corner-6545-6602-10892-10950-contract/', 14, 1.01);
+
+		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/4240-4314-rebuild/', 0, 1.006);
+		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/4290-4364-rebuild/', 1, 1.001);
+		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/6354-6433-rebuild/', 2, 1.002);
+		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/6414-6493-rebuild/', 3, 1.003);
+		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/6474-6553-rebuild/', 4, 1.004);
+		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/6498-6577-rebuild/', 5, 1.005);
+		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/10919-11000-rebuild/', 9, 1.);
+		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/10980-11050-rebuild/', 1, 1.001);
+		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/7606-7665-rebuild/', 6, 0.996);
+		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/7606-7665-rebuild-2/', 15);
+		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/7646-7715-rebuild/', 7, 0.997);
+		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/7700-7770-rebuild/', 8, 0.998);
+		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/corner-1-rebuild/', 11, 1.007);
+		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/corner-2-rebuild/', 12, 1.008);
+		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/corner-3-rebuild/', 13, 1.011);
+		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/corner-4-rebuild/', 14, 1.01);
 		
+
+
+
 		
 		this.init_bakedsdf_bbox(this, external+'bboxes/');
 		this.init_shadow(this, 'src/shadow.json');
@@ -311,6 +322,7 @@ export class World
 			});
 		}
 
+		this.renderer.compile(this.graphicsWorld, this.camera);
 		this.render(this);
 	}
 
@@ -354,6 +366,13 @@ export class World
 				child_shadow.receiveShadow = true;
 				// child_shadow.castShadow = true;
 				child_shadow.material.opacity = 0.8;
+
+				child_shadow.frustumCulled = false;
+				// child_shadow.onAfterRender = function(){
+				// 	child_shadow.frustumCulled = true;
+				// 	child_shadow.onAfterRender = function(){};
+				// };
+
 				world.sky.csm.setupMaterial(child_shadow.material);
 				world.graphicsWorld.add(child_shadow);
 				
@@ -427,15 +446,18 @@ export class World
             let cascade = network_weights['cascade'];
             
             world.kitti_uv_models[idx] = [];
+			world.initProgressBar(path, cascade);
 
             for (let cas = 0; cas < cascade; cas++) {
 
                 // load feature texture
                 let tex0 = new THREE.TextureLoader().load(path+'feat0_'+cas.toString()+'.png', object => {
                     console.log('[INFO] loaded diffuse tex:', idx, cas);
+					world.updateProgressBar(path, cas*3+1);
                 });
                 let tex1 = new THREE.TextureLoader().load(path+'feat1_'+cas.toString()+'.png', object => {
                     console.log('[INFO] loaded specular tex:', idx, cas);
+					world.updateProgressBar(path, cas*3+2);
                 });
 
                 
@@ -506,11 +528,18 @@ export class World
 								child.scale.z = SCALE * sky_scale;
 							}
 							
+							child.frustumCulled = false;
+
                             (child as THREE.Mesh).material = newmat;
                     		world.kitti_uv_models[idx].push(child);
+
+							
 						}
                     });
                     console.log('[INFO] loaded mesh:', idx, cas);
+					world.updateProgressBar(path, cas*3);
+					
+	
                     world.graphicsWorld.add(object);
                 });
 				// _scale = 1;
@@ -518,7 +547,7 @@ export class World
             }
 
             world.kitti_uv_models_loaded[idx] = true;
-
+			// world.update_progressbar(idx);
         });
 	}
 
@@ -772,6 +801,7 @@ export class World
 
             if (this.kitti_uv_models_loaded[idx] == true){
 				model_list.forEach(model => {
+					model.frustumCulled = true;
 					(model.material as THREE.RawShaderMaterial).uniforms['gmatrix_inv']['value'] = gmatrix_noc_inv.clone().invert();
 					(model.material as THREE.RawShaderMaterial).uniforms['c2w_T']['value'] = c2w_rot_inv.clone().transpose();
 				})
@@ -809,9 +839,9 @@ export class World
 					// coin.scale.y = 0.02;
 					// coin.scale.z = 0.02;
 					coin.visible = false;
-					console.log("accelarate_frames: ", char.accelarate_frames);
+					// console.log("accelarate_frames: ", char.accelarate_frames);
 					if(char.accelarate_frames == 0){
-						console.log("accelarate");
+						// console.log("accelarate");
 						char.moveSpeed = 20;
 						char.accelarate_frames = 500;
 					}
@@ -827,7 +857,12 @@ export class World
 						char.moveSpeed = 4;
 					}
 				}
-				this.graphicsWorld.add(coin);
+				coin.frustumCulled = true;
+				// coin.onAfterRender = function(){
+				// 	coin.frustumCulled = true;
+				// 	coin.onAfterRender = function(){};
+				// };
+				// this.graphicsWorld.add(coin);
 			})
 
 
@@ -835,7 +870,8 @@ export class World
 			// console.log('vase_origin revising');
 			vase_list.forEach((_vase, idx_frac) => {
 				var c = close(_vase.position, char.position);
-				if (c){
+				if (c|| (this.frac_meshes_start_break[idx_frac] && this.frac_frame[idx_frac] < 39)){
+					this.frac_meshes_start_break[idx_frac] = true;
 					if (this.frac_meshes_sorted[idx_frac] == false){
 						let meshes_with_index = [];
 						for (let idx = 0; idx < this.frac_meshes[idx_frac].length; idx++){
@@ -849,10 +885,25 @@ export class World
 							this.frac_meshes[idx_frac][idx] = meshes_with_index[idx][1];
 						}
 						this.frac_meshes_sorted[idx_frac] = true;
-						console.log(meshes_with_index);
+						// console.log(meshes_with_index);
 					}
 
 					this.pre_frac_frame[idx_frac] = this.frac_frame[idx_frac];
+
+					if (this.pre_frac_frame[idx_frac] == 0){
+						for (let idx = 0; idx < this.frac_meshes[idx_frac].length; idx++) {
+							// test.push(test_with_index[j][0]);
+							this.frac_meshes[idx_frac][idx].visible = true;
+							this.frac_meshes[idx_frac][idx].frustumCulled = true;
+						}
+						for (let idx = 0; idx < this.full_meshes[idx_frac].length; idx++) {
+							// test.push(test_with_index[j][0]);
+							this.full_meshes[idx_frac][idx].visible = false;
+							this.graphicsWorld.remove(this.full_meshes[idx_frac][idx]);
+						}
+					}
+
+
 					function min(a:number, b:number): number{
 						return a<b? a:b;
 					}
@@ -893,7 +944,7 @@ export class World
 				function (gltf) {
 					gltf.scene.traverse(function (child) {
 						if ((child as THREE.Mesh).isMesh) {
-							child.frustumCulled = false;
+							// child.frustumCulled = false;
 							child.receiveShadow = false;
 							child.castShadow = false;
 							child.position.x = char.position.x;
@@ -904,10 +955,16 @@ export class World
 							child.scale.z = 0.2;
 							child.rotateY(Math.PI/2);
 							child.visible = true;
+
+							// child.frustumCulled = false;
+							// child.onAfterRender = function(){
+							// 	child.frustumCulled = true;
+							// 	child.onAfterRender = function(){};
+							// };
 						}
 					})
 					world.graphicsWorld.add(gltf.scene);
-					console.log("add footpoint: ", char.position);
+					// console.log("add footpoint: ", char.position);
 				},
 				(xhr) => {
 					// // console.log((xhr.loaded / xhr.total) * 100 + '% loaded', idx);
@@ -928,6 +985,104 @@ export class World
 			}
 		});
 
+
+		this.vehicles.forEach((vehicle) => {
+			var char = vehicle.rayCastVehicle.chassisBody;
+			function close(pos1: THREE.Vector3, pos2:  THREE.Vector3){
+
+				var dx = (pos1.x - pos2.x);
+				var dy = (pos1.y - pos2.y);
+				var dz = (pos1.z - pos2.z);
+				
+				var dist = dx*dx + dy*dy + dz*dz;
+				return dist < 1;
+			}
+
+			this.coins_glbs.forEach(coin => {
+				var c = close(coin.position, new THREE.Vector3(char.position.x, char.position.y, char.position.z));
+				if (c){
+					// coin.scale.x = 0.02;
+					// coin.scale.y = 0.02;
+					// coin.scale.z = 0.02;
+					coin.visible = false;
+				}
+				else{
+					coin.scale.x = 0.5;
+					coin.scale.y = 0.5;
+					coin.scale.z = 0.5;
+				}
+				// this.graphicsWorld.add(coin);
+			})
+
+
+			var vase_list = this.vase.listcoins();
+			// console.log('vase_origin revising');
+			vase_list.forEach((_vase, idx_frac) => {
+				var c = close(_vase.position, new THREE.Vector3(char.position.x, char.position.y, char.position.z));
+				if (c|| (this.frac_meshes_start_break[idx_frac] && this.frac_frame[idx_frac] < 39)){
+					this.frac_meshes_start_break[idx_frac] = true;
+					if (this.frac_meshes_sorted[idx_frac] == false){
+						let meshes_with_index = [];
+						for (let idx = 0; idx < this.frac_meshes[idx_frac].length; idx++){
+							meshes_with_index.push([this.frac_meshes[idx_frac][idx][1], this.frac_meshes[idx_frac][idx][0], idx]);
+						}
+						meshes_with_index.sort(function(left, right) {
+							return left[0] < right[0] ? -1 : 1;
+						});
+						for (let idx = 0; idx < this.frac_meshes[idx_frac].length; idx++) {
+							// test.push(test_with_index[j][0]);
+							this.frac_meshes[idx_frac][idx] = meshes_with_index[idx][1];
+						}
+						this.frac_meshes_sorted[idx_frac] = true;
+						// console.log(meshes_with_index);
+					}
+
+					this.pre_frac_frame[idx_frac] = this.frac_frame[idx_frac];
+
+					if (this.pre_frac_frame[idx_frac] == 0){
+						for (let idx = 0; idx < this.frac_meshes[idx_frac].length; idx++) {
+							// test.push(test_with_index[j][0]);
+							this.frac_meshes[idx_frac][idx].visible = true;
+						}
+						for (let idx = 0; idx < this.full_meshes[idx_frac].length; idx++) {
+							// test.push(test_with_index[j][0]);
+							this.full_meshes[idx_frac][idx].visible = false;
+							this.graphicsWorld.remove(this.full_meshes[idx_frac][idx]);
+						}
+					}
+
+
+					function min(a:number, b:number): number{
+						return a<b? a:b;
+					}
+					let idx:number = min(this.pre_frac_frame[idx_frac] + 1, 39);
+
+					this.frac_meshes[idx_frac].forEach((_vase_mesh, meshidx) => {
+					// let scale_x = this.frac_scale_values[3*idx];
+					// let scale_y = this.frac_scale_values[3*idx+1];
+					// let scale_z = this.frac_scale_values[3*idx+2];
+						let rot_0 = this.frac_rot_values[meshidx][4*idx];
+						let rot_1 = this.frac_rot_values[meshidx][4*idx+1];
+						let rot_2 = this.frac_rot_values[meshidx][4*idx+2];
+						let rot_3 = this.frac_rot_values[meshidx][4*idx+3];
+
+						let translate_x = this.frac_translate_values[meshidx][3*idx];
+						let translate_y = this.frac_translate_values[meshidx][3*idx+1];
+						let translate_z = this.frac_translate_values[meshidx][3*idx+2];
+					
+						let local_matrix;
+						let rot_matrix = new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion(rot_0, rot_1, rot_2, rot_3));
+						let translate_matrix = new THREE.Matrix4().makeTranslation(translate_x + this.frac_translate[idx_frac].x, translate_y + this.frac_translate[idx_frac].y, translate_z + this.frac_translate[idx_frac].z);
+						local_matrix = new THREE.Matrix4().multiplyMatrices(translate_matrix, rot_matrix);
+						
+						_vase_mesh.matrixAutoUpdate = false;
+						_vase_mesh.matrix = local_matrix;
+					// this.graphicsWorld.add(mesh);
+					});
+					this.frac_frame[idx_frac] = idx;
+				}
+			})
+		});
 
 	}
 
@@ -952,6 +1107,18 @@ export class World
 		body.interpolatedQuaternion.copy(newQuat);
 		body.velocity.setZero();
 		body.angularVelocity.setZero();
+	}
+		
+		
+	public initProgressBar(name, length) {
+	    this.progressBar = document.getElementById('progressBar');
+	    this.progress[name] = new Array(length * 3).fill('🔴');
+	    this.progressBar.innerText = Object.keys(this.progress).map(key => this.progress[key].join('')).join('|');
+	}
+	public updateProgressBar(name, index) {
+	    this.progressBar = document.getElementById('progressBar');
+	    this.progress[name][index] = '🟢';
+	    this.progressBar.innerText = Object.keys(this.progress).map(key => this.progress[key].join('')).join('|');
 	}
 
 	/**
@@ -1093,7 +1260,7 @@ export class World
 							this.frac_meshes_sorted[i] = false;
 						}
 						coin_list.forEach((coin, idx) => {
-							console.log("coin: ", idx, " : ", coin.position);
+							// console.log("coin: ", idx, " : ", coin.position);
 
 							var loader = new GLTFLoader();
 							var sceneFile = 'src/coin.glb';
@@ -1113,11 +1280,17 @@ export class World
 											child.scale.y = 0.5;
 											child.scale.z = 0.5;
 											child.visible = true;
+
+											// child.frustumCulled = false;
+											// child.onAfterRender = function(){
+											// 	child.frustumCulled = true;
+											// 	child.onAfterRender = function(){};
+											// };
 											world.coins_glbs.push(child);
 										}
 									})
 									world.graphicsWorld.add(gltf.scene);
-									console.log("add coin: ", idx);
+									// console.log("add coin: ", idx);
 								},
 								(xhr) => {
 									// console.log((xhr.loaded / xhr.total) * 100 + '% loaded', idx);
@@ -1134,12 +1307,13 @@ export class World
 					{
 						this.vase = new Vase(child);
 						var vase_list = this.vase.listcoins();
-						console.log('vase_origin loading');
+						// console.log('vase_origin loading');
 						vase_list.forEach((_vase, idx) => {
-							console.log('vase_origin adding');
+							// console.log('vase_origin adding');
 							let scale = SCALE*0.02;
-							console.log("_vase: ", idx, " : ", _vase.position);
+							// console.log("_vase: ", idx, " : ", _vase.position);
 							var path = external+'chair_frac';
+							var full_path = external+'chair';
 							const nerf_object_rescale:number = scale;
 
 							let nerf_object_offset_x:number = _vase.position.x;
@@ -1147,11 +1321,14 @@ export class World
 							let nerf_object_offset_z:number = _vase.position.z;
 							
 							let obj_name = path;
+							let full_obj_name = full_path;
 							
 							let world = this;
 							
 							world.frac_scale[idx] = scale;
 							world.frac_translate[idx] = _vase.position;
+
+							world.frac_meshes_start_break.push(false);
 							
 							var nerf_gTotalPNGs;
 							var nerf_gTotalOBJs;
@@ -1162,7 +1339,7 @@ export class World
 							fetch(obj_name + '/mlp.json').then(response => {
 								return response.json();
 							}).then(json => {
-								console.log('mlp');
+								// console.log('mlp');
 								nerf_gTotalPNGs = json['obj_num'] * 2;
 								nerf_gTotalOBJs = json['obj_num'] * 8;
 
@@ -1311,6 +1488,45 @@ export class World
 														child.receiveShadow = true;
 														child.castShadow = true;
 														world.frac_meshes[idx].push([child, i*frac_num+j]);
+
+														child.frustumCulled = false;
+														// child.onAfterRender = function(){
+														// 	child.frustumCulled = true;
+														// 	child.onAfterRender = function(){};
+														// };
+														world.graphicsWorld.add(child);
+														child.visible = false;
+														
+													}
+												});
+												nerf_gLoadedOBJs++;
+											});
+									}
+
+									world.full_meshes[idx] = [];
+									var full_num = 8;
+									for (let j = 0; j < full_num; j++, load_objs++) {
+										new OBJLoader()
+											.load(full_obj_name + '/shape' + i.toFixed(0) + '_' + j.toFixed(0) + '.obj', function (object) {
+												object.traverse(function (child) {
+													if (child.type == 'Mesh') {
+														child.scale.x = nerf_object_rescale;
+														child.scale.y = nerf_object_rescale;
+														child.scale.z = nerf_object_rescale;
+														child.position.x = nerf_object_offset_x;
+														child.position.y = nerf_object_offset_y;
+														child.position.z = nerf_object_offset_z;
+
+														(child as THREE.Mesh).material = newmat;
+														child.receiveShadow = true;
+														child.castShadow = true;
+														world.full_meshes[idx].push(child);
+
+														child.frustumCulled = false;
+														// child.onAfterRender = function(){
+														// 	child.frustumCulled = true;
+														// 	child.onAfterRender = function(){};
+														// };
 														world.graphicsWorld.add(child);
 														
 													}
@@ -1370,6 +1586,56 @@ export class World
 							
 						}); 
 
+					}
+
+
+					if (child.userData.data === 'collision')
+					{
+						if (child.userData.shape === 'box')
+						{
+							child.visible = false;
+							let phys = new BoxCollider({size: new THREE.Vector3(child.scale.x, child.scale.y, child.scale.z)});
+							phys.body.position.copy(Utils.cannonVector(child.position));
+							phys.body.quaternion.copy(Utils.cannonQuat(child.quaternion));
+							phys.body.computeAABB();
+
+							phys.body.shapes.forEach((shape) => {
+								shape.collisionFilterMask = ~CollisionGroups.TrimeshColliders;
+							});
+
+							this.physicsWorld.addBody(phys.body);
+						}
+					}
+
+					if (child.userData.data === 'camera_range')
+					{
+						if (child.userData.shape === 'box')
+						{
+							child.visible = false;
+							var rect_p1 = new THREE.Vector4(-1, 0, -1, 1);
+							var rect_p2 = new THREE.Vector4(1, 0, -1, 1);
+							var rect_p3 = new THREE.Vector4(1, 0, 1, 1);
+							var rect_p4 = new THREE.Vector4(-1, 0, 1, 1);
+							
+							let rot_matrix = new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion(child.quaternion._x, child.quaternion._y, child.quaternion._z, child.quaternion._w));
+							let translate_matrix = new THREE.Matrix4().makeTranslation(child.position.x, child.position.y, child.position.z);
+							let scale_matrix = new THREE.Matrix4().makeScale(child.scale.x, child.scale.y, child.scale.z);
+							let T_matrix = new THREE.Matrix4().multiplyMatrices(translate_matrix, new THREE.Matrix4().multiplyMatrices(rot_matrix, scale_matrix));
+							
+							rect_p1 = rect_p1.applyMatrix4(T_matrix);
+							rect_p2 = rect_p2.applyMatrix4(T_matrix);
+							rect_p3 = rect_p3.applyMatrix4(T_matrix);
+							rect_p4 = rect_p4.applyMatrix4(T_matrix);
+
+							var rect: [[number, number], [number, number], [number, number], [number, number]] = [
+								[rect_p1.x / rect_p1.w, rect_p1.z / rect_p1.w],
+								[rect_p2.x / rect_p2.w, rect_p2.z / rect_p2.w],
+								[rect_p3.x / rect_p3.w, rect_p3.z / rect_p3.w],
+								[rect_p4.x / rect_p4.w, rect_p4.z / rect_p4.w]
+							]
+							// console.log(rect,  child.userData.theta, child.userData.offset);
+							this.cameraOperator.range_ctrler.push([rect, child.userData.theta, child.userData.offset]);
+						}
 					}
 				}
 			}

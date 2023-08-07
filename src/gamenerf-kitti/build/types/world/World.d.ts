@@ -54,6 +54,8 @@ export declare class World {
     frac_rot_values: any[];
     frac_translate_values: any[];
     frac_meshes: any[];
+    frac_meshes_start_break: any[];
+    full_meshes: any[];
     frac_meshes_sorted: any[];
     frac_scale: any[];
     frac_translate: any[];
@@ -74,6 +76,8 @@ export declare class World {
     fy: any;
     cx: any;
     cy: any;
+    progressBar: any;
+    progress: {};
     private lastScenarioID;
     constructor(worldScenePath?: any);
     private init_shadow;
@@ -83,6 +87,8 @@ export declare class World {
     updatePhysics(timeStep: number): void;
     isOutOfBounds(position: CANNON.Vec3): boolean;
     outOfBoundsRespawn(body: CANNON.Body, position?: CANNON.Vec3): void;
+    initProgressBar(name: any, length: any): void;
+    updateProgressBar(name: any, index: any): void;
     /**
      * Rendering loop.
      * Implements fps limiter and frame-skipping

@@ -12,6 +12,7 @@ export declare class CameraOperator implements IInputReceiver, IUpdatable {
     sensitivity: THREE.Vector2;
     radius: number;
     theta: number;
+    theta_offset: number;
     phi: number;
     onMouseDownPosition: THREE.Vector2;
     onMouseDownTheta: any;
@@ -26,7 +27,9 @@ export declare class CameraOperator implements IInputReceiver, IUpdatable {
     rightVelocity: number;
     followMode: boolean;
     characterCaller: Character;
+    range_ctrler: any[];
     constructor(world: World, camera: THREE.Camera, sensitivityX?: number, sensitivityY?: number);
+    limit_theta(theta: number): number;
     setSensitivity(sensitivityX: number, sensitivityY?: number): void;
     setRadius(value: number, instantly?: boolean): void;
     move(deltaX: number, deltaY: number): void;
