@@ -282,7 +282,7 @@ export class World
 		// this.init_uvmapping(this, external+'kitti-pymesh/7646-7715-rebuild-dp-1em2/', 2, 1.002);
 		// this.init_uvmapping(this, external+'kitti-pymesh/7646-7715-rebuild-dp-1em2-2/', 16, 1.007, 1);
 
-		this.init_bakedsdf_bbox(this, external+'bboxes/');
+		this.init_bakedsdf_bbox(this, 'src/bboxes/');
 		this.init_shadow(this, 'src/shadow.json');
         // this.init_nerf(this, external+'chair', 0.5, new THREE.Vector3(2.0, 15.3, 0.0), true, null, false);
 
