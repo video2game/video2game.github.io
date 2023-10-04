@@ -49,8 +49,8 @@ import {Geometry, Face3} from 'three/examples/jsm/deprecated/Geometry'
 // app.use(cors());
 
 const SCALE = 34.77836216;
-// const external = 'https://huggingface.co/hongchi/video2game_v1.0/resolve/main/'
-const external = './nerf_models/'
+const external = 'https://huggingface.co/hongchi/video2game_v1.0/resolve/main/'
+// const external = './nerf_models/'
 // const external = 'https://shenlonggroup.s3.amazonaws.com/nerf_models+2/'
 const origin = 'https://shenlonggroup.s3.amazonaws.com/'
 
@@ -259,25 +259,25 @@ export class World
 		}
 
 
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/4240-4314-rebuild/', 0, 1.006);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/4290-4364-rebuild/', 1, 1.001);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/7606-7665-rebuild/', 6, 0.996);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/7606-7665-rebuild-2/', 15, 1, 1);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/7606-7665-rebuild-3/', 18, 1, 1);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/7646-7715-rebuild/', 7, 0.997);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/7646-7715-rebuild-2/', 19, 1, 1);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/corner-1-rebuild/', 11, 1.007);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/corner-4-rebuild/', 14, 1.01);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/6354-6433-rebuild/', 2, 1.002);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/6354-6433-rebuild-2/', 16, 1.007, 1);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/6414-6493-rebuild/', 3, 1.003);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/6474-6553-rebuild/', 4, 1.004);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/6498-6577-rebuild/', 5, 1.005);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/corner-2-rebuild/', 12, 1.008);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/10919-11000-rebuild/', 9, 1.);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/10919-11000-rebuild-2/', 17, 1.008, 1);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/10980-11050-rebuild/', 10, 1.001);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh/corner-3-rebuild/', 13, 1.011);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/4240-4314-rebuild/', 0, 1.006);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/4290-4364-rebuild/', 1, 1.001);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/7606-7665-rebuild/', 6, 0.996);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/7606-7665-rebuild-2/', 15, 1, 1);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/7606-7665-rebuild-3/', 18, 1, 1);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/7646-7715-rebuild/', 7, 0.997);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/7646-7715-rebuild-2/', 19, 1, 1);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/corner-1-rebuild/', 11, 1.007);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/corner-4-rebuild/', 14, 1.01);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/6354-6433-rebuild/', 2, 1.002);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/6354-6433-rebuild-2/', 16, 1.007, 1);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/6414-6493-rebuild/', 3, 1.003);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/6474-6553-rebuild/', 4, 1.004);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/6498-6577-rebuild/', 5, 1.005);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/corner-2-rebuild/', 12, 1.008);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/10919-11000-rebuild/', 9, 1.);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/10919-11000-rebuild-2/', 17, 1.008, 1);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/10980-11050-rebuild/', 10, 1.001);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/corner-3-rebuild/', 13, 1.011);
 
 		// this.init_uvmapping(this, external+'kitti-pymesh/7646-7715-rebuild-dp-1em2/', 2, 1.002);
 		// this.init_uvmapping(this, external+'kitti-pymesh/7646-7715-rebuild-dp-1em2-2/', 16, 1.007, 1);
