@@ -1,2 +1,3 @@
 src/gamenerf-kitti/node_modules/*
 src/gamenerf-kitti/nerf_models/*
+src/garden/

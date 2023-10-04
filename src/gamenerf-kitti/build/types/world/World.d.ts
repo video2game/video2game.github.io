@@ -82,6 +82,7 @@ export declare class World {
     constructor(worldScenePath?: any);
     private init_shadow;
     private init_uvmapping;
+    private init_uvmapping_ply;
     private init_bakedsdf_bbox;
     update(timeStep: number, unscaledTimeStep: number): void;
     updatePhysics(timeStep: number): void;

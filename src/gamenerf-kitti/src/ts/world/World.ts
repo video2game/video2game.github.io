@@ -49,8 +49,8 @@ import {Geometry, Face3} from 'three/examples/jsm/deprecated/Geometry'
 // app.use(cors());
 
 const SCALE = 34.77836216;
-const external = 'https://huggingface.co/hongchi/video2game_v1.0/resolve/main/'
-// const external = './nerf_models/'
+// const external = 'https://huggingface.co/hongchi/video2game_v1.0/resolve/main/'
+const external = './nerf_models/'
 // const external = 'https://shenlonggroup.s3.amazonaws.com/nerf_models+2/'
 const origin = 'https://shenlonggroup.s3.amazonaws.com/'
 
@@ -253,32 +253,35 @@ export class World
 		this.wind_uniforms = [];
 
 		
-		this.kitti_uvmodel_num = 16;
+		this.kitti_uvmodel_num = 20;
 		for(let i=0; i < this.kitti_uvmodel_num;i++){
 			this.kitti_uv_models_loaded.push(false);
 		}
 
-		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/4240-4314-rebuild/', 0, 1.006);
-		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/4290-4364-rebuild/', 1, 1.001);
-		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/6354-6433-rebuild/', 2, 1.002);
-		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/6414-6493-rebuild/', 3, 1.003);
-		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/6474-6553-rebuild/', 4, 1.004);
-		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/6498-6577-rebuild/', 5, 1.005);
-		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/10919-11000-rebuild/', 9, 1.);
-		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/10980-11050-rebuild/', 1, 1.001);
-		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/7606-7665-rebuild/', 6, 0.996);
-		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/7606-7665-rebuild-2/', 15);
-		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/7646-7715-rebuild/', 7, 0.997);
-		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/7700-7770-rebuild/', 8, 0.998);
-		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/corner-1-rebuild/', 11, 1.007);
-		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/corner-2-rebuild/', 12, 1.008);
-		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/corner-3-rebuild/', 13, 1.011);
-		this.init_uvmapping(this, external+'rebuild-textured_mesh_4096/corner-4-rebuild/', 14, 1.01);
-		
 
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/4240-4314-rebuild/', 0, 1.006);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/4290-4364-rebuild/', 1, 1.001);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/7606-7665-rebuild/', 6, 0.996);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/7606-7665-rebuild-2/', 15, 1, 1);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/7606-7665-rebuild-3/', 18, 1, 1);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/7646-7715-rebuild/', 7, 0.997);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/7646-7715-rebuild-2/', 19, 1, 1);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/corner-1-rebuild/', 11, 1.007);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/corner-4-rebuild/', 14, 1.01);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/6354-6433-rebuild/', 2, 1.002);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/6354-6433-rebuild-2/', 16, 1.007, 1);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/6414-6493-rebuild/', 3, 1.003);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/6474-6553-rebuild/', 4, 1.004);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/6498-6577-rebuild/', 5, 1.005);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/corner-2-rebuild/', 12, 1.008);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/10919-11000-rebuild/', 9, 1.);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/10919-11000-rebuild-2/', 17, 1.008, 1);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/10980-11050-rebuild/', 10, 1.001);
+		this.init_uvmapping_ply(this, external+'kitti-pymesh/corner-3-rebuild/', 13, 1.011);
 
+		// this.init_uvmapping(this, external+'kitti-pymesh/7646-7715-rebuild-dp-1em2/', 2, 1.002);
+		// this.init_uvmapping(this, external+'kitti-pymesh/7646-7715-rebuild-dp-1em2-2/', 16, 1.007, 1);
 
-		
 		this.init_bakedsdf_bbox(this, external+'bboxes/');
 		this.init_shadow(this, 'src/shadow.json');
         // this.init_nerf(this, external+'chair', 0.5, new THREE.Vector3(2.0, 15.3, 0.0), true, null, false);
@@ -385,7 +388,7 @@ export class World
 	}
 	
 
-	private init_uvmapping(world: World, path: string, idx: number, sky_scale: number=1): void{
+	private init_uvmapping(world: World, path: string, idx: number, sky_scale: number=1, _cascade: number=null): void{
 
 		
 		function createNetworkWeightTexture(network_weights) {
@@ -417,7 +420,7 @@ export class World
 
 			let texture = new THREE.DataTexture(weightsData_pad, 1, width_pad * height / 4, THREE.RGBAFormat, THREE.FloatType);
 			texture.magFilter = THREE.LinearFilter;
-			texture.minFilter = THREE.LinearFilter;
+			texture.minFilter = THREE.LinearMipMapLinearFilter;
 			texture.needsUpdate = true;
 			return texture;
 		}
@@ -443,8 +446,8 @@ export class World
 
             // check bound, load all meshes
             let bound = network_weights['bound'];
-            let cascade = network_weights['cascade'];
-            
+			let cascade;
+			cascade = network_weights['cascade'];
             world.kitti_uv_models[idx] = [];
 			world.initProgressBar(path, cascade);
 
@@ -469,7 +472,7 @@ export class World
 				
 				var side; 
 				// let _scale = 1;
-				if(cas != cascade - 1){
+				if(cascade != 1 && cas != cascade - 1){
 					side = THREE.FrontSide;
 					// _scale = SCALE;
 					tex0.magFilter = THREE.LinearFilter;
@@ -483,9 +486,9 @@ export class World
 					// _scale = SCALE * sky_scale;
 
 					tex0.magFilter = THREE.LinearFilter;
-					tex0.minFilter = THREE.LinearFilter;
+					tex0.minFilter = THREE.LinearMipMapLinearFilter;
 					tex1.magFilter = THREE.LinearFilter;
-					tex1.minFilter = THREE.LinearFilter;
+					tex1.minFilter = THREE.LinearMipMapLinearFilter;
 				}
                 let newmat = new THREE.ShaderMaterial({
 					side: side,
@@ -550,6 +553,170 @@ export class World
 			// world.update_progressbar(idx);
         });
 	}
+
+	private init_uvmapping_ply(world: World, path: string, idx: number, sky_scale: number=1, _cascade: number=null): void{
+
+		
+		function createNetworkWeightTexture(network_weights) {
+			let width = network_weights.length;
+			let height = network_weights[0].length;
+			
+			let weightsData = new Float32Array(width * height);
+			for (let co = 0; co < height; co++) {
+				for (let ci = 0; ci < width; ci++) {
+					let index = co * width + ci; // column-major
+					let weight = network_weights[ci][co];
+					weightsData[index] = weight;
+				}
+			}
+			
+			let width_pad = width + (4 - width % 4); // make divisible by 4
+			let weightsData_pad = new Float32Array(width_pad * height);
+			for (let j = 0; j < width_pad; j += 4) {
+				for (let i = 0; i < height; i++) {
+					for (let c = 0; c < 4; c++) {
+						if (c + j >= width) { 
+							weightsData_pad[j * height + i * 4 + c] = 0.0; // zero padding
+						} else {
+							weightsData_pad[j * height + i * 4 + c] = weightsData[j + i * width + c];
+						}
+					}
+				}
+			}
+
+			let texture = new THREE.DataTexture(weightsData_pad, 1, width_pad * height / 4, THREE.RGBAFormat, THREE.FloatType);
+			texture.magFilter = THREE.LinearFilter;
+			texture.minFilter = THREE.LinearMipmapLinearFilter;
+			texture.needsUpdate = true;
+			return texture;
+		}
+
+		function createViewDependenceFunctions(network_weights) {
+		
+			let channelsZero = network_weights['net.0.weight'].length;
+			let channelsOne = network_weights['net.1.weight'].length;
+			let channelsTwo = network_weights['net.1.weight'][0].length;
+
+			console.log('[INFO] load MLP: ', channelsZero, channelsOne)
+
+			let RenderFragShader = NeRFShader.RenderFragShader_template.trim().replace(new RegExp('NUM_CHANNELS_ZERO', 'g'), channelsZero);
+			RenderFragShader = RenderFragShader.replace(new RegExp('NUM_CHANNELS_ONE', 'g'), channelsOne);
+			RenderFragShader = RenderFragShader.replace(new RegExp('NUM_CHANNELS_TWO', 'g'), channelsTwo);
+
+			return RenderFragShader;
+		}
+
+		fetch(path+'mlp.json').then(response => { return response.json(); }).then(network_weights => {
+
+            console.log("[INFO] loading:", idx);
+
+            // check bound, load all meshes
+            let bound = network_weights['bound'];
+			let cascade;
+			cascade = _cascade == null? network_weights['cascade']: _cascade;
+            world.kitti_uv_models[idx] = [];
+			world.initProgressBar(path, cascade);
+
+            for (let cas = 0; cas < cascade; cas++) {
+
+                // load feature texture
+                let tex0 = new THREE.TextureLoader().load(path+'feat0_'+cas.toString()+'.png', object => {
+                    console.log('[INFO] loaded diffuse tex:', idx, cas);
+					world.updateProgressBar(path, cas*3+1);
+                });
+                let tex1 = new THREE.TextureLoader().load(path+'feat1_'+cas.toString()+'.png', object => {
+                    console.log('[INFO] loaded specular tex:', idx, cas);
+					world.updateProgressBar(path, cas*3+2);
+                });
+
+                
+            
+                // load MLP
+                let RenderFragShader = createViewDependenceFunctions(network_weights);
+                let weightsTexZero = createNetworkWeightTexture(network_weights['net.0.weight']);
+                let weightsTexOne = createNetworkWeightTexture(network_weights['net.1.weight']);
+				
+				var side; 
+				// let _scale = 1;
+				if(cascade == 1 || cas != cascade - 1){
+					side = THREE.FrontSide;
+					// _scale = SCALE;
+					tex0.magFilter = THREE.LinearFilter;
+					tex0.minFilter = THREE.LinearFilter;
+					tex1.magFilter = THREE.LinearFilter;
+					tex1.minFilter = THREE.LinearFilter;
+				}
+				else{
+					side = THREE.BackSide;
+					// _scale = SCALE*(1+idx*0.01);
+					// _scale = SCALE * sky_scale;
+
+					tex0.magFilter = THREE.LinearFilter;
+					tex0.minFilter = THREE.LinearMipMapLinearFilter;
+					tex1.magFilter = THREE.LinearFilter;
+					tex1.minFilter = THREE.LinearMipMapLinearFilter;
+				}
+
+                let newmat = new THREE.ShaderMaterial({
+					side: side,
+                    vertexShader: NeRFShader.RenderVertShader.trim(),
+                    fragmentShader: RenderFragShader,
+                    uniforms: {
+                        'mode': { value: 0 },
+                        'tDiffuse': { value: tex0 },
+                        'tSpecular': { value: tex1 },
+                        'weightsZero': { value: weightsTexZero },
+                        'weightsOne': { value: weightsTexOne },
+						'gmatrix_inv': {'value': new THREE.Matrix4()},
+						'intrinsic': {'value': world.intrinsic},
+						'c2w_T': {'value': new THREE.Matrix3()},
+						'fx': {'value': world.fx},
+						'fy': {'value': world.fy},
+						'cx': {'value': world.cx},
+						'cy': {'value': world.cy},						
+                    },
+                });
+            
+                // load obj
+                new PLYLoader().load(path+'mesh_'+cas.toString()+'.ply', geo => {
+					let child = new THREE.Mesh(geo);
+					child.receiveShadow = false;
+					child.castShadow = false;
+					child.position.x = -45;
+					child.position.y = 14;
+					child.position.z = 0;
+					child.rotateX(-3.1415927/2);
+					if (cascade == 1 || cas != cascade - 1){
+						child.scale.x = SCALE * 1;
+						child.scale.y = SCALE * 1;
+						child.scale.z = SCALE * 1;
+					}
+					else{
+						child.scale.x = SCALE * sky_scale;
+						child.scale.y = SCALE * sky_scale;
+						child.scale.z = SCALE * sky_scale;
+					}
+					
+					child.frustumCulled = false;
+
+					(child as THREE.Mesh).material = newmat;
+					world.kitti_uv_models[idx].push(child);
+
+                    console.log('[INFO] loaded mesh:', idx, cas);
+					world.updateProgressBar(path, cas*3);
+	
+                    world.graphicsWorld.add(child);
+
+                });
+				// _scale = 1;
+
+            }
+
+            world.kitti_uv_models_loaded[idx] = true;
+			// world.update_progressbar(idx);
+        });
+	}
+
 
 	private init_bakedsdf_bbox(world: World, path: string): void {
 
