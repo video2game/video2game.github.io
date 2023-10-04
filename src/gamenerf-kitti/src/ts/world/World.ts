@@ -53,7 +53,7 @@ const external = 'https://huggingface.co/hongchi/video2game_v1.0/resolve/main/'
 // const external = './nerf_models/'
 // const external = 'https://shenlonggroup.s3.amazonaws.com/nerf_models+2/'
 const origin = 'https://shenlonggroup.s3.amazonaws.com/'
-
+// https://huggingface.co/hongchi/video2game_v1.0/resolve/main/kitti-pymesh-meshes-ft/4240-4314-rebuild/feat0_0.png
 
 
 
