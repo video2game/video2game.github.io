@@ -471,14 +471,6 @@ export class Character extends THREE.Object3D implements IWorldEntity
 				keys: ['F', 'or', 'G'],
 				desc: 'Enter vehicle'
 			},
-			{
-				keys: ['Shift', '+', 'R'],
-				desc: 'Respawn'
-			},
-			{
-				keys: ['Shift', '+', 'C'],
-				desc: 'Free camera'
-			},
 		]);
 	}
 
@@ -891,6 +883,7 @@ export class Character extends THREE.Object3D implements IWorldEntity
 			body.velocity.z = newVelocity.z;
 			// Ground character
 			body.position.y = character.rayResult.hitPointWorld.y + character.rayCastLength + (newVelocity.y / character.world.physicsFrameRate);
+			character.world.fix_camera_y = body.position.y+0.9;
 		}
 		else
 		{

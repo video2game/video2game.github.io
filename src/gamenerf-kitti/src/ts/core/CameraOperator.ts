@@ -95,7 +95,7 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 	public camera: THREE.Camera;
 	public target: THREE.Vector3;
 	public sensitivity: THREE.Vector2;
-	public radius: number = 1;
+	public radius: number = 3;
 	public theta: number;
 	public theta_offset: number;
 	public phi: number;
@@ -227,7 +227,7 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 		this.targetRadius = Math.max(0.001, value);
 		if (instantly === true)
 		{
-			this.radius = value;
+			this.radius = 3;
 		}
 	}
 
@@ -235,8 +235,8 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 	{
 		this.theta = this.limit_theta(this.theta - deltaX * (this.sensitivity.x / 2));
 		this.theta %= 360;
-		this.phi += deltaY * (this.sensitivity.y / 2);
-		this.phi = Math.min(85, Math.max(-85, this.phi));
+		// this.phi += deltaY * (this.sensitivity.y / 2);
+		// this.phi = Math.min(85, Math.max(-85, this.phi));
 	}
 
 	public update(timeScale: number): void
@@ -251,17 +251,19 @@ export class CameraOperator implements IInputReceiver, IUpdatable
 			this.camera.position.z = newPos.z;
 
 			this.camera.position.y = this.world.fix_camera_y;
+			this.target.y = this.camera.position.y;
 			this.camera.up = new THREE.Vector3(0, 1, 0);
 		}
 		else 
 		{
-			this.radius = THREE.MathUtils.lerp(this.radius, this.targetRadius, 3.0);
+			this.radius = 3;
 	
 			this.camera.position.x = this.target.x + this.radius * Math.sin((this.theta + this.theta_offset) * Math.PI / 180) * Math.cos(this.phi * Math.PI / 180);
 			this.camera.position.y = this.target.y + this.radius * Math.sin(this.phi * Math.PI / 180);
 			this.camera.position.z = this.target.z + this.radius * Math.cos((this.theta + this.theta_offset) * Math.PI / 180) * Math.cos(this.phi * Math.PI / 180);
 
 			this.camera.position.y = this.world.fix_camera_y;
+			this.target.y = this.camera.position.y - 0.8;
 			this.camera.up = new THREE.Vector3(0, 1, 0);
 			this.camera.updateMatrix();
 			this.camera.lookAt(this.target);

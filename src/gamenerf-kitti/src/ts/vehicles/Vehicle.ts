@@ -255,7 +255,7 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 
 	public inputReceiverUpdate(timeStep: number): void
 	{
-		if (this.firstPerson)
+		if (false)
 		{
 			// this.world.cameraOperator.target.set(
 			//     this.position.x + this.camera.position.x,
@@ -272,9 +272,13 @@ export abstract class Vehicle extends THREE.Object3D implements IWorldEntity
 			// Position camera
 			this.world.cameraOperator.target.set(
 				this.position.x,
-				this.position.y + 0.5,
+				this.position.y + 0.1,
 				this.position.z
 			);
+			// Position camera
+			this.world.cameraOperator.camera.position.y = 
+				this.position.y + 1.0;
+			this.world.fix_camera_y = this.position.y + 0.9;
 		}
 	}
 

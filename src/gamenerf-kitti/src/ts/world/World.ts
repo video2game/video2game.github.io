@@ -49,11 +49,88 @@ import {Geometry, Face3} from 'three/examples/jsm/deprecated/Geometry'
 // app.use(cors());
 
 const SCALE = 34.77836216;
-const external = 'https://huggingface.co/hongchi/video2game_v1.0/resolve/main/'
-// const external = './nerf_models/'
-// const external = 'https://shenlonggroup.s3.amazonaws.com/nerf_models+2/'
-const origin = 'https://shenlonggroup.s3.amazonaws.com/'
-// https://huggingface.co/hongchi/video2game_v1.0/resolve/main/kitti-pymesh-meshes-ft/4240-4314-rebuild/feat0_0.png
+// const external = 'https://huggingface.co/hongchi/video2game_v1.0/resolve/main/'
+const external = './nerf_models/'
+const CH = 14.5;
+
+function distance(point, rectangle) {
+	const rectangleX1 = rectangle[0][0];
+	const rectangleY1 = rectangle[0][1];
+	const rectangleX2 = rectangle[1][0];
+	const rectangleY2 = rectangle[1][1];
+	const rectangleX3 = rectangle[2][0];
+	const rectangleY3 = rectangle[2][1];
+	const rectangleX4 = rectangle[3][0];
+	const rectangleY4 = rectangle[3][1];
+
+	var average_x = (rectangleX1 + rectangleX2 + rectangleX3 + rectangleX4) / 4;
+	var average_y = (rectangleY1 + rectangleY2 + rectangleY3 + rectangleY4) / 4;
+
+	return (point[0] - average_x)*(point[0] - average_x) + (point[1] - average_y)*(point[1] - average_y)
+}
+
+function pointInRectangle(point, rectangle):boolean {
+	// Unpack the point coordinates
+	const pointX = point[0];
+	const pointY = point[1];
+  
+	// Unpack the rectangle coordinates
+	const rectangleX1 = rectangle[0][0];
+	const rectangleY1 = rectangle[0][1];
+	const rectangleX2 = rectangle[1][0];
+	const rectangleY2 = rectangle[1][1];
+	const rectangleX3 = rectangle[2][0];
+	const rectangleY3 = rectangle[2][1];
+	const rectangleX4 = rectangle[3][0];
+	const rectangleY4 = rectangle[3][1];
+  
+	// Calculate the vectors of the rectangle sides
+	const vector1X = rectangleX2 - rectangleX1;
+	const vector1Y = rectangleY2 - rectangleY1;
+	const vector2X = rectangleX3 - rectangleX2;
+	const vector2Y = rectangleY3 - rectangleY2;
+  
+	// Calculate the dot products
+	const dotProduct1 = (pointX - rectangleX1) * vector1X + (pointY - rectangleY1) * vector1Y;
+	const dotProduct2 = (pointX - rectangleX2) * vector2X + (pointY - rectangleY2) * vector2Y;
+  
+	// Check if the dot products have the same sign
+	if ((dotProduct1 >= 0 && dotProduct2 >= 0)) {
+	  // Calculate the vectors of the other two sides
+	  const vector3X = rectangleX4 - rectangleX3;
+	  const vector3Y = rectangleY4 - rectangleY3;
+	  const vector4X = rectangleX1 - rectangleX4;
+	  const vector4Y = rectangleY1 - rectangleY4;
+  
+	  // Calculate the dot products
+	  const dotProduct3 = (pointX - rectangleX3) * vector3X + (pointY - rectangleY3) * vector3Y;
+	  const dotProduct4 = (pointX - rectangleX4) * vector4X + (pointY - rectangleY4) * vector4Y;
+  
+	  // Check if the dot products have the same sign
+	  if (dotProduct3 >= 0 && dotProduct4 >= 0) {
+		return true; // Point is inside the rectangle
+	  }
+	}
+
+	if ((dotProduct1 <= 0 && dotProduct2 <= 0)) {
+		// Calculate the vectors of the other two sides
+		const vector3X = rectangleX4 - rectangleX3;
+		const vector3Y = rectangleY4 - rectangleY3;
+		const vector4X = rectangleX1 - rectangleX4;
+		const vector4Y = rectangleY1 - rectangleY4;
+	
+		// Calculate the dot products
+		const dotProduct3 = (pointX - rectangleX3) * vector3X + (pointY - rectangleY3) * vector3Y;
+		const dotProduct4 = (pointX - rectangleX4) * vector4X + (pointY - rectangleY4) * vector4Y;
+	
+		// Check if the dot products have the same sign
+		if (dotProduct3 <= 0 && dotProduct4 <= 0) {
+		  return true; // Point is inside the rectangle
+		}
+	}
+  
+	return false; // Point is outside the rectangle
+}
 
 
 
@@ -115,13 +192,28 @@ export class World
 	// public kitti_scene_list=[];
 	public kitti_uv_models=[];
 	public intrinsic;
-	public fix_camera_y:number=14.0;
+	public fix_camera_y:number=CH;
 	public fx;
 	public fy;
 	public cx;
 	public cy;
 	public progressBar;
 	public progress={};
+	public onload=0;
+	public total_load=0;
+	public interface_loaded=false;
+	public loadingManager=null;
+	public total_load_progress = {};
+	public footpoint;
+	public footpoints=[];
+	public msec=0;
+	public car_racing_game=false;
+	public temple_run_game=false;
+	public coin_collected=0;
+	public chair_broken=0;
+	public ckpts=[];
+	public ckpt_seq=0;
+	public blender_collisions=[];
 
 	private lastScenarioID: string;
 
@@ -143,12 +235,13 @@ export class World
 		}
 
 		// Renderer
-		let pixelRatio = 1;
+		let pixelRatio = 2;
 		this.renderer = new THREE.WebGLRenderer(
 			{
 			powerPreference: 'high-performance',
 			precision: 'highp',
-			}
+			antialias: false
+		},
 		);
 		let width = 1408;
 		let height = 376;
@@ -253,57 +346,30 @@ export class World
 		this.wind_uniforms = [];
 
 		
-		this.kitti_uvmodel_num = 20;
-		for(let i=0; i < this.kitti_uvmodel_num;i++){
-			this.kitti_uv_models_loaded.push(false);
-		}
-
-
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/4240-4314-rebuild/', 0, 1.006);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/4290-4364-rebuild/', 1, 1.001);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/7606-7665-rebuild/', 6, 0.996);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/7606-7665-rebuild-2/', 15, 1, 1);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/7606-7665-rebuild-3/', 18, 1, 1);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/7646-7715-rebuild/', 7, 0.997);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/7646-7715-rebuild-2/', 19, 1, 1);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/corner-1-rebuild/', 11, 1.007);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/corner-4-rebuild/', 14, 1.01);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/6354-6433-rebuild/', 2, 1.002);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/6354-6433-rebuild-2/', 16, 1.007, 1);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/6414-6493-rebuild/', 3, 1.003);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/6474-6553-rebuild/', 4, 1.004);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/6498-6577-rebuild/', 5, 1.005);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/corner-2-rebuild/', 12, 1.008);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/10919-11000-rebuild/', 9, 1.);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/10919-11000-rebuild-2/', 17, 1.008, 1);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/10980-11050-rebuild/', 10, 1.001);
-		this.init_uvmapping_ply(this, external+'kitti-pymesh-meshes-ft/corner-3-rebuild/', 13, 1.011);
-
-		// this.init_uvmapping(this, external+'kitti-pymesh/7646-7715-rebuild-dp-1em2/', 2, 1.002);
-		// this.init_uvmapping(this, external+'kitti-pymesh/7646-7715-rebuild-dp-1em2-2/', 16, 1.007, 1);
-
-		this.init_bakedsdf_bbox(this, 'src/bboxes/');
-		this.init_shadow(this, 'src/shadow.json');
-        // this.init_nerf(this, external+'chair', 0.5, new THREE.Vector3(2.0, 15.3, 0.0), true, null, false);
 
 
 		// Load scene if path is supplied
 		if (worldScenePath !== undefined)
 		{
 			let loadingManager = new LoadingManager(this);
+			this.loadingManager = loadingManager;
 			loadingManager.onFinishedCallback = () =>
 			{
 				this.update(1, 1);
 				this.setTimeScale(1);
-				var prompt = 'Feel free to explore the world based on KITTI-360 Loop! Interact with available vehicle.<br><br>Acknowledgement: This demo is based on <a href="https://github.com/swift502/Sketchbook" target="_blank">Sketchbook</a><br><br><strong>Warning! You might suffer from CORS problem when loading assets from our storage. Please install "Allow CORS" browser plugin. For Edge and Chrome users, we have provided links below.</strong>After install the browser plugin, <b>please remember to activate it to ON mode to enable it</b><br><br><a href="https://microsoftedge.microsoft.com/addons/detail/allow-cors-accesscontro/bhjepjpgngghppolkjdhckmnfphffdag" target="_blank">Edge Allow CORS Plugin</a><br><a href="https://chrome.google.com/webstore/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf/related" target="_blank">Chrome Allow CORS Plugin</a>';
+				var prompt = 'Feel free to explore the world based on KITTI-360 Loop! Interact with available vehicle.<br><br>Acknowledgement: This demo is based on <a href="https://github.com/swift502/Sketchbook" target="_blank">Sketchbook</a><br><br><button onclick="world.temple_run(world);" style="background-color: orange; border: none; color: black; border: 5px solid yellow; padding: 1px 5px; width: 120px; height: 50px; text-align: center; text-decoration: none; display: inline-block;font-size: 18px;font-family: -apple-system, BlinkMacSystemFont, helvetica, arial, sans-serif;">Temple Run</button><br><br><button onclick="world.car_racing(world);" style="background-color: orange; border: none; color: black; padding: 1px 5px; text-align: center; text-decoration: none; display: inline-block;font-size: 18px; border: 5px solid yellow; width: 120px; height: 50px;  font-family: -apple-system, BlinkMacSystemFont, helvetica, arial, sans-serif;">Car Racing</button>';
 				Swal.fire({
 					title: 'Welcome to Video2Game Demo!',
 					html: prompt,
 					footer: '<a href="https://video2game.github.io/" target="_blank">Video2Game GitHub page</a>',
-					confirmButtonText: 'Okay',
+					confirmButtonText: 'Free Play',
 					buttonsStyling: false,
+					showConfirmButton: false,
 					onClose: () => {
 						UIManager.setUserInterfaceVisible(true);
+						this.msec = 0;
+						var timer = document.getElementById("timer");
+						timer.style.visibility = "visible";
 					}
 				});
 			};
@@ -329,6 +395,104 @@ export class World
 		this.render(this);
 	}
 
+	public init_trimesh_collision(world: World, path: string){
+		// _scale = 1;
+		var cas = 0;
+		fetch(path+'mesh_'+cas.toString()+'_slim_cc/cc.json').then(response => { return response.json(); }).then(phy_paths => {
+			console.log(phy_paths);
+			function disposeArray() {
+				this.array = null;
+			}
+			phy_paths.forEach(phy_path => {
+			// var phy_path = phy_paths[0];
+			new PLYLoader().load(path+'mesh_'+cas.toString()+'_slim_cc/'+phy_path, geo => {
+				var geometry = new THREE.BufferGeometry();
+				const position = geo.getAttribute( 'position' );
+				var vertices = position.array;
+				var faces = [];
+				// console.log(vertices);
+				const index = geo.getIndex();
+				for ( let i = 0; i < index.count; i += 3 ) {
+					const face = {
+						a: index.getX(i),
+						b: index.getX(i+1),
+						c: index.getX(i+2),
+					};
+					faces.push(face);
+				}
+				// console.log(faces);
+				const positions = [];
+				faces.forEach(face => {
+					positions.push(vertices[face.a*3],
+						vertices[face.a*3+1],
+						vertices[face.a*3+2]);
+					positions.push(vertices[face.b*3],
+						vertices[face.b*3+1],
+						vertices[face.b*3+2]);
+					positions.push(vertices[face.c*3],
+						vertices[face.c*3+1],
+						vertices[face.c*3+2]);
+				});
+				geometry.setAttribute( 'position', new THREE.Float32BufferAttribute(positions , 3 ).onUpload( disposeArray ) );
+				geometry.computeVertexNormals();
+				// console.log(positions);
+				let child = new THREE.Mesh(geometry);
+				child.position.x = -45;
+				child.position.y = 14;
+				child.position.z = 0;
+				child.rotateX(-3.1415927/2);
+				child.scale.x = SCALE * 1;
+				child.scale.y = SCALE * 1;
+				child.scale.z = SCALE * 1;
+				let mesh = child as THREE.Mesh;
+				let phys = new TrimeshCollider(mesh, {});
+				world.physicsWorld.addBody(phys.body);
+
+				let child_shadow = (mesh as THREE.Mesh).clone();
+				child_shadow.material = new THREE.ShadowMaterial();
+				child_shadow.receiveShadow = true;
+				// child_shadow.castShadow = true;
+				child_shadow.material.opacity = 0.8;
+
+				child_shadow.frustumCulled = false;
+				// child_shadow.onAfterRender = function(){
+				// 	child_shadow.frustumCulled = true;
+				// 	child_shadow.onAfterRender = function(){};
+				// };
+
+				world.sky.csm.setupMaterial(child_shadow.material);
+				world.graphicsWorld.add(child_shadow);
+			});
+		});
+		});
+	}
+
+	public car_racing(world:World){
+		console.log('car_racing');
+
+		world.car_racing_game = true;
+		world.temple_run_game = false;
+		var gameinfo = document.getElementById("gameinfo");
+		gameinfo.style.width = '280px';
+		gameinfo.style.height = '180px';
+		gameinfo.style.visibility = "visible";
+		world.blender_collisions.forEach(body => {
+			world.physicsWorld.addBody(body);
+		})
+
+		Swal.close();
+	}	
+	public temple_run(world:World){
+		console.log('temple_run');
+
+		world.car_racing_game = false;
+		world.temple_run_game = true;
+
+		var gameinfo = document.getElementById("gameinfo");
+		// gameinfo.innerText = "\n  Coins collected: "+world.coin_collected.toString()+"\nBroken chairs: "+world.chair_broken.toString();
+		gameinfo.style.visibility = "visible";
+		Swal.close();
+	}
 	private init_shadow(world: World, path: string): void {
 		
 		
@@ -385,6 +549,38 @@ export class World
 		});
 
 		
+	}
+
+	public update_progress_bar(world: World){
+		var total_bar = 50.1;
+		var total_bar_int = 50;
+		var ok = '🟩';
+		var nok = '🟥';
+	    var progressBar = document.getElementById('progressBarw');
+		var load_progress = 0.0;
+		for (var load_i in world.total_load_progress){
+			world.total_load_progress[load_i].forEach(load_i_j => {
+				load_progress += load_i_j;
+			})
+		}
+		// console.log(load_progress);
+		// console.log(this.total_load*100);
+		var okblock_f = (load_progress / (this.total_load*100.0)) * total_bar;
+		// console.log(okblock_f);
+		var okblock = 0;
+		var pbstr = '';
+		for (var oki=1; oki<okblock_f; oki+=1){
+			pbstr = pbstr+ok;
+			okblock += 1;
+		}
+		for (var noki=0; noki<total_bar-okblock; noki+=1){
+			pbstr = pbstr+nok;
+		}
+		// console.log(pbstr);
+		progressBar.innerText = pbstr;
+		if(okblock == total_bar_int){
+			progressBar.innerText = "";
+		}
 	}
 	
 
@@ -457,11 +653,17 @@ export class World
                 let tex0 = new THREE.TextureLoader().load(path+'feat0_'+cas.toString()+'.png', object => {
                     console.log('[INFO] loaded diffuse tex:', idx, cas);
 					world.updateProgressBar(path, cas*3+1);
-                });
+                },
+				(xhr) => {
+					// // console.log((xhr.loaded / xhr.total) * 100 + '% loaded', idx);
+				});
                 let tex1 = new THREE.TextureLoader().load(path+'feat1_'+cas.toString()+'.png', object => {
                     console.log('[INFO] loaded specular tex:', idx, cas);
 					world.updateProgressBar(path, cas*3+2);
-                });
+                },
+				(xhr) => {
+					// // console.log((xhr.loaded / xhr.total) * 100 + '% loaded', idx);
+				});
 
                 
             
@@ -544,7 +746,10 @@ export class World
 					
 	
                     world.graphicsWorld.add(object);
-                });
+                },
+				(xhr) => {
+					// // console.log((xhr.loaded / xhr.total) * 100 + '% loaded', idx);
+				});
 				// _scale = 1;
 
             }
@@ -616,6 +821,7 @@ export class World
 			cascade = _cascade == null? network_weights['cascade']: _cascade;
             world.kitti_uv_models[idx] = [];
 			world.initProgressBar(path, cascade);
+			world.total_load_progress[idx] = new Array(cascade*3).fill(0);
 
             for (let cas = 0; cas < cascade; cas++) {
 
@@ -623,11 +829,25 @@ export class World
                 let tex0 = new THREE.TextureLoader().load(path+'feat0_'+cas.toString()+'.png', object => {
                     console.log('[INFO] loaded diffuse tex:', idx, cas);
 					world.updateProgressBar(path, cas*3+1);
-                });
+					world.total_load_progress[idx][cas*3+1] = 100;
+					world.update_progress_bar(world);
+                },
+				(xhr) => {
+					world.total_load_progress[idx][cas*3+1] = (xhr.loaded / xhr.total) * 100;
+					world.update_progress_bar(world);
+					// // console.log((xhr.loaded / xhr.total) * 100 + '% loaded', idx);
+				});
                 let tex1 = new THREE.TextureLoader().load(path+'feat1_'+cas.toString()+'.png', object => {
                     console.log('[INFO] loaded specular tex:', idx, cas);
 					world.updateProgressBar(path, cas*3+2);
-                });
+					world.total_load_progress[idx][cas*3+2] = 100;
+					world.update_progress_bar(world);
+                },
+				(xhr) => {
+					world.total_load_progress[idx][cas*3+2] = (xhr.loaded / xhr.total) * 100;
+					world.update_progress_bar(world);
+					// // console.log((xhr.loaded / xhr.total) * 100 + '% loaded', idx);
+				});
 
                 
             
@@ -641,10 +861,13 @@ export class World
 				if(cascade == 1 || cas != cascade - 1){
 					side = THREE.FrontSide;
 					// _scale = SCALE;
+					// tex0.wrapS = THREE.ClampToEdgeWrapping;
+					// tex0.wrapT = THREE.ClampToEdgeWrapping;
 					tex0.magFilter = THREE.LinearFilter;
 					tex0.minFilter = THREE.LinearFilter;
 					tex1.magFilter = THREE.LinearFilter;
 					tex1.minFilter = THREE.LinearFilter;
+					console.log("LinearFilter")
 				}
 				else{
 					side = THREE.BackSide;
@@ -679,6 +902,9 @@ export class World
             
                 // load obj
                 new PLYLoader().load(path+'mesh_'+cas.toString()+'.ply', geo => {
+					world.total_load_progress[idx][cas*3] = 100;
+					world.update_progress_bar(world);
+
 					let child = new THREE.Mesh(geo);
 					child.receiveShadow = false;
 					child.castShadow = false;
@@ -707,10 +933,17 @@ export class World
 	
                     world.graphicsWorld.add(child);
 
-                });
-				// _scale = 1;
-
+                },
+				(xhr) => {
+					// // console.log((xhr.loaded / xhr.total) * 100 + '% loaded', idx);
+					world.total_load_progress[idx][cas*3] = (xhr.loaded / xhr.total) * 100;
+					world.update_progress_bar(world);
+					
+				});
+				
             }
+
+			
 
             world.kitti_uv_models_loaded[idx] = true;
 			// world.update_progressbar(idx);
@@ -776,206 +1009,143 @@ export class World
 
 		// Physics debug
 		if (this.params.Debug_Physics) this.cannonDebugRenderer.update();
+		
+		if (true){
+			this.camera.projectionMatrix  = new THREE.Matrix4().fromArray(this.camera_projmat).transpose();
+			this.camera.projectionMatrixInverse  = new THREE.Matrix4().fromArray(this.camera_projmat).transpose().invert();
 
-		// time in vertex shader
-		// this.wind_uniforms.forEach(elem => {
-		// 	elem.time.value = this.clock.getElapsedTime();
-		// });
-
-		// if (this.pre_frac_frame != this.frac_frame) {
-		// 	if (this.frac_meshes_sorted == false){
-		// 		let meshes_with_index = [];
-		// 		for (let idx = 0; idx < this.frac_meshes.length; idx++){
-		// 			meshes_with_index.push([this.frac_meshes[idx][1], this.frac_meshes[idx][0], idx]);
-		// 		}
-		// 		meshes_with_index.sort(function(left, right) {
-		// 			return left[0] < right[0] ? -1 : 1;
-		// 		});
-		// 		for (let idx = 0; idx < this.frac_meshes.length; idx++) {
-		// 			// test.push(test_with_index[j][0]);
-		// 			this.frac_meshes[idx] = meshes_with_index[idx][1];
-		// 		}
-		// 		this.frac_meshes_sorted = true;
-		// 		console.log(meshes_with_index);
-		// 	}
-		// 	this.pre_frac_frame = this.frac_frame;
-		// 	let idx = this.frac_frame;
+			let scale = SCALE;
+			let scene_trans = new THREE.Vector3(-45, 14, 0);
+			let rx = new THREE.Matrix4().makeRotationX(-3.1415926/2);
+			let rx_3 = new THREE.Matrix3().fromArray([
+				rx.elements[0], rx.elements[1], rx.elements[2],
+				rx.elements[4], rx.elements[5], rx.elements[6],
+				rx.elements[8], rx.elements[9], rx.elements[10]
+			]);
 			
-		// 	this.frac_meshes.forEach((mesh, meshidx) => {
-		// 		// let scale_x = this.frac_scale_values[3*idx];
-		// 		// let scale_y = this.frac_scale_values[3*idx+1];
-		// 		// let scale_z = this.frac_scale_values[3*idx+2];
-		// 		let rot_0 = this.frac_rot_values[meshidx][4*idx];
-		// 		let rot_1 = this.frac_rot_values[meshidx][4*idx+1];
-		// 		let rot_2 = this.frac_rot_values[meshidx][4*idx+2];
-		// 		let rot_3 = this.frac_rot_values[meshidx][4*idx+3];
+			var p00, p10, p20, p30;
+			var p01, p11, p21, p31;
+			var p02, p12, p22, p32;
+			var p03, p13, p23, p33;
+			
+			[p00, p10, p20, p30,
+				p01, p11, p21, p31,
+				p02, p12, p22, p32,
+				p03, p13, p23, p33] 
+			= this.camera.matrixWorld.elements;
+			
+			// trans
+			let trans_inv = new THREE.Vector3(p03, p13, p23).add(scene_trans.multiplyScalar(-1)).multiplyScalar(1/scale).applyMatrix4(rx.clone().invert())
+			
+			let c2w_rot_inv = new THREE.Matrix3().fromArray([
+				p00, p01, p02,
+				p10, p11, p12,
+				p20, p21, p22
+			]).transpose();
+			c2w_rot_inv = new THREE.Matrix3().multiplyMatrices(rx_3.clone().invert(), c2w_rot_inv);
+			
+			var c00, c10, c20;
+			var c01, c11, c21;
+			var c02, c12, c22;
+			[
+				c00, c10, c20,
+				c01, c11, c21,
+				c02, c12, c22
+			] = c2w_rot_inv.elements;
+			c2w_rot_inv = new THREE.Matrix3().fromArray([
+				c00, -c01, -c02,
+				c10, -c11, -c12,
+				c20, -c21, -c22
+			]).transpose()
 
-		// 		let translate_x = this.frac_translate_values[meshidx][3*idx];
-		// 		let translate_y = this.frac_translate_values[meshidx][3*idx+1];
-		// 		let translate_z = this.frac_translate_values[meshidx][3*idx+2];
-				
-		// 		let local_matrix;
-		// 		let rot_matrix = new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion(rot_0, rot_1, rot_2, rot_3));
-		// 		let translate_matrix = new THREE.Matrix4().makeTranslation(translate_x + this.frac_translate.x, translate_y + this.frac_translate.y, translate_z + this.frac_translate.z);
-		// 		local_matrix = new THREE.Matrix4().multiplyMatrices(translate_matrix, rot_matrix);
-				
-		// 		mesh.matrixAutoUpdate = false;
-		// 		mesh.matrix = local_matrix;
-		// 		// this.graphicsWorld.add(mesh);
-		// 	});
-		// }
+			let gmatrix_noc_inv = new THREE.Matrix4().fromArray([
+				c00, c01, c02, trans_inv.x,
+				c10, c11, c12, trans_inv.y,
+				c20, c21, c22, trans_inv.z,
+				0, 0, 0, 1
+			]).transpose();
 
-		this.camera.projectionMatrix  = new THREE.Matrix4().fromArray(this.camera_projmat).transpose();
-		this.camera.projectionMatrixInverse  = new THREE.Matrix4().fromArray(this.camera_projmat).transpose().invert();
+			this.kitti_uv_models.forEach((model_list, idx) => {
 
-		let scale = SCALE;
-		let scene_trans = new THREE.Vector3(-45, 14, 0);
-		let rx = new THREE.Matrix4().makeRotationX(-3.1415926/2);
-		let rx_3 = new THREE.Matrix3().fromArray([
-			rx.elements[0], rx.elements[1], rx.elements[2],
-			rx.elements[4], rx.elements[5], rx.elements[6],
-			rx.elements[8], rx.elements[9], rx.elements[10]
-		]);
-		
-		/*
-		this.camera.matrixAutoUpdate = false;
-		// let pose = [[-0.36318400502204895, -0.09275107085704803, 0.9270889759063721, 0.863662600517273], 
-		// 		[-0.9316319823265076, 0.022611409425735474, -0.3627009987831116, 2.285231828689575], 
-		// 		[0.012678000144660473, -0.9954327940940857, -0.09462100267410278, -0.009412795305252075]];
-		let pose = [[0.9144159555435181, -0.05887333303689957, 0.4004710912704468, -1.1355698108673096], [-0.40434005856513977, -0.08699830621480942, 0.9104614853858948, 1.4808566570281982], [-0.018761591985821724, -0.9944676160812378, -0.10335706174373627, -0.020358135923743248]];
-		let c2w_rot = new THREE.Matrix3().fromArray([pose[0][0], pose[0][1], pose[0][2],
-												pose[1][0], pose[1][1], pose[1][2],
-												pose[2][0], pose[2][1], pose[2][2]]).transpose();
-		pose[0][1] = -pose[0][1];
-		pose[0][2] = -pose[0][2];
-		pose[1][1] = -pose[1][1];
-		pose[1][2] = -pose[1][2];
-		pose[2][1] = -pose[2][1];
-		pose[2][2] = -pose[2][2];
-		let trans = new THREE.Vector3(pose[0][3], pose[1][3], pose[2][3]);
-		let rot = new THREE.Matrix4().fromArray([pose[0][0], pose[0][1], pose[0][2], 0,
-					pose[1][0], pose[1][1], pose[1][2], 0,
-					pose[2][0], pose[2][1], pose[2][2], 0,
-					0, 0, 0, 1]).transpose();
-		let gmatrix_noc = new THREE.Matrix4().fromArray([
-						rot.elements[0], rot.elements[1], rot.elements[2], 0,
-						rot.elements[4], rot.elements[5], rot.elements[6], 0,
-						rot.elements[8], rot.elements[9], rot.elements[10], 0,
-						trans.x, trans.y, trans.z, 1
-					]);
-		// let scale = 1.;
-		// let scene_trans = new THREE.Vector3(0, 0, 0);
-		
-		// let rz = new THREE.Matrix4().makeRotationY(3.1415926/4);
-		rot = new THREE.Matrix4().multiplyMatrices(rx, rot);
-		// rot = new THREE.Matrix4().multiplyMatrices(new THREE.Matrix4().multiplyMatrices(rz, rx), rot);
-
-		// trans = trans.multiplyScalar(scale).add(scene_trans);
-		trans = trans.applyMatrix4(rx).multiplyScalar(scale).add(scene_trans);
-
-		let gmatrix = new THREE.Matrix4().fromArray([
-			rot.elements[0], rot.elements[1], rot.elements[2], 0,
-			rot.elements[4], rot.elements[5], rot.elements[6], 0,
-			rot.elements[8], rot.elements[9], rot.elements[10], 0,
-			trans.x, trans.y, trans.z, 1
-		]);
-
-		
-		
-		this.camera.matrix = new THREE.Matrix4().copy(gmatrix.clone());
-		this.camera.matrixWorld = new THREE.Matrix4().copy(gmatrix.clone());
-		this.camera.matrixWorldInverse = new THREE.Matrix4().copy(gmatrix.clone().invert());
-		
-		this.kitti_loaded_list.forEach((loaded, idx) => {
-			if (loaded == true){
-				this.kitti_models[idx].frustumCulled = true;
-				(this.kitti_models[idx].material as THREE.ShaderMaterial).uniforms['gmatrix_inv']['value'] = gmatrix_noc.clone().invert();
-				(this.kitti_models[idx].material as THREE.ShaderMaterial).uniforms['c2w_T']['value'] = c2w_rot.transpose();
-			}
-		})
-
-		console.log("this.camera.matrix: ", this.camera.matrix.elements)
-		console.log("this.camera.matrixWorldInverse: ", this.camera.matrixWorldInverse.elements)
-
-		*/
-		
-		
-		var p00, p10, p20, p30;
-		var p01, p11, p21, p31;
-		var p02, p12, p22, p32;
-		var p03, p13, p23, p33;
-		
-		[p00, p10, p20, p30,
-			p01, p11, p21, p31,
-			p02, p12, p22, p32,
-			p03, p13, p23, p33] 
-		= this.camera.matrixWorld.elements;
-		
-		// trans
-		let trans_inv = new THREE.Vector3(p03, p13, p23).add(scene_trans.multiplyScalar(-1)).multiplyScalar(1/scale).applyMatrix4(rx.clone().invert())
-		
-		let c2w_rot_inv = new THREE.Matrix3().fromArray([
-			p00, p01, p02,
-			p10, p11, p12,
-			p20, p21, p22
-		]).transpose();
-		c2w_rot_inv = new THREE.Matrix3().multiplyMatrices(rx_3.clone().invert(), c2w_rot_inv);
-		
-		var c00, c10, c20;
-		var c01, c11, c21;
-		var c02, c12, c22;
-		[
-			c00, c10, c20,
-			c01, c11, c21,
-			c02, c12, c22
-		] = c2w_rot_inv.elements;
-		c2w_rot_inv = new THREE.Matrix3().fromArray([
-			c00, -c01, -c02,
-			c10, -c11, -c12,
-			c20, -c21, -c22
-		]).transpose()
-
-		let gmatrix_noc_inv = new THREE.Matrix4().fromArray([
-			c00, c01, c02, trans_inv.x,
-			c10, c11, c12, trans_inv.y,
-			c20, c21, c22, trans_inv.z,
-			0, 0, 0, 1
-		]).transpose();
-		
-		let camera_x = p03;
-		let camera_y = p13;
-		let camera_z = p23;
-		this.kitti_models.forEach((model, idx) => {
-			let loaded = (this.kitti_models[idx].material as THREE.ShaderMaterial).uniforms['loaded']['value'];
-			if (loaded > 0){
-				this.kitti_models[idx].frustumCulled = true;
-				(this.kitti_models[idx].material as THREE.ShaderMaterial).uniforms['gmatrix_inv']['value'] = gmatrix_noc_inv.clone().invert();
-				(this.kitti_models[idx].material as THREE.ShaderMaterial).uniforms['c2w_T']['value'] = c2w_rot_inv.clone().transpose();
-				let x_max = (this.kitti_models[idx].material as THREE.ShaderMaterial).uniforms['x_max']['value'];
-				let x_min = (this.kitti_models[idx].material as THREE.ShaderMaterial).uniforms['x_min']['value'];
-				let z_max = (this.kitti_models[idx].material as THREE.ShaderMaterial).uniforms['z_max']['value'];
-				let z_min = (this.kitti_models[idx].material as THREE.ShaderMaterial).uniforms['z_min']['value'];
-				if(camera_x>x_min && camera_x<x_max && camera_z>z_min && camera_z<z_max){
-					this.kitti_models[idx].visible = true;
+				if (this.kitti_uv_models_loaded[idx] == true){
+					model_list.forEach(model => {
+						// model.frustumCulled = true;
+						(model.material as THREE.RawShaderMaterial).uniforms['gmatrix_inv']['value'] = gmatrix_noc_inv.clone().invert();
+						(model.material as THREE.RawShaderMaterial).uniforms['c2w_T']['value'] = c2w_rot_inv.clone().transpose();
+					})
 				}
-				else{
-					this.kitti_models[idx].visible = false;
+			})
+		}
+
+		if (this.temple_run_game){
+			// update coin and broken chair
+			var gameinfo = document.getElementById("gameinfo");
+			gameinfo.innerHTML = "<br>&nbsp;&nbsp;&nbsp;Coins collected: "+this.coin_collected.toString()+"<br>&nbsp;&nbsp;&nbsp;Broken chairs: "+this.chair_broken.toString();
+			if(this.msec > 30*1000){
+				this.temple_run_game = false;
+				var prompt = 'Over 30s!<br>Game Finished!<br>Total Statistic: <br>Coins collected: '+this.coin_collected.toString()+'<br>Broken chairs: '+this.chair_broken.toString()+'<br>Try to collect more coins and break less chairs next time!';
+				UIManager.setUserInterfaceVisible(false);
+				Swal.fire({
+					title: 'Temple run time up!',
+					html: prompt,
+					footer: '<a href="https://video2game.github.io/" target="_blank">Video2Game GitHub page</a>',
+					confirmButtonText: 'Free Play',
+					buttonsStyling: false,
+					showConfirmButton: true,
+					onClose: () => {
+						UIManager.setUserInterfaceVisible(true);
+						this.msec = 0;
+						var timer = document.getElementById("timer");
+						timer.style.visibility = "hidden";
+					}
+				});
+				// while(true){
+
+				// }
+			}
+		}
+		
+		if (this.car_racing_game){
+			var gameinfo = document.getElementById("gameinfo");
+			var info_str = "<br>&nbsp;&nbsp;&nbsp;Car Passing Checkpoints: ";
+			if(this.ckpt_seq == 0){
+				info_str = info_str + "<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;None"
+			}
+			else{
+				for(var seq=0; seq<this.ckpt_seq; seq+=1){
+					info_str = info_str + "<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Checkpoint "+seq.toString()
 				}
 			}
-		})
-
-		this.kitti_uv_models.forEach((model_list, idx) => {
-
-            if (this.kitti_uv_models_loaded[idx] == true){
-				model_list.forEach(model => {
-					model.frustumCulled = true;
-					(model.material as THREE.RawShaderMaterial).uniforms['gmatrix_inv']['value'] = gmatrix_noc_inv.clone().invert();
-					(model.material as THREE.RawShaderMaterial).uniforms['c2w_T']['value'] = c2w_rot_inv.clone().transpose();
-				})
+			gameinfo.innerHTML = info_str;
+			if(this.ckpt_seq == 5){
+				this.car_racing_game = false;
+				var msec = this.msec;
+				var p_msec = Math.floor((msec % 1000) * 1.0 / 1000.0 * 100.0);
+				var pad_msec = p_msec < 10? "0" : "";
+				var sec = Math.floor(msec / 1000);
+				var p_sec = sec % 60;
+				var pad_sec = p_sec < 10? "0" : "";
+				var p_min = Math.floor(sec / 60);
+				var pad_min = p_min < 10? "0" : "";
+				var total_time = pad_min+p_min.toString()+":"+pad_sec+p_sec.toString()+":"+pad_msec+p_msec.toString();
+				var prompt = 'All checkpoints reached!<br>Game Finished!<br>Total Time: <br>'+total_time+'<br>Try to save more time next time!';
+				UIManager.setUserInterfaceVisible(false);
+				Swal.fire({
+					title: 'Car Racing Reach Endpoint!',
+					html: prompt,
+					footer: '<a href="https://video2game.github.io/" target="_blank">Video2Game GitHub page</a>',
+					confirmButtonText: 'Free Play',
+					buttonsStyling: false,
+					showConfirmButton: true,
+					onClose: () => {
+						UIManager.setUserInterfaceVisible(true);
+						this.msec = 0;
+						var timer = document.getElementById("timer");
+						timer.style.visibility = "hidden";
+					}
+				});
 			}
-			
-		})
-
+		}
 	}
 
 	public updatePhysics(timeStep: number): void
@@ -998,46 +1168,45 @@ export class World
 				var dist = dx*dx + dy*dy + dz*dz;
 				return dist < 1;
 			}
-
-			this.coins_glbs.forEach(coin => {
+			var coin_to_remove = null;
+			this.coins_glbs.forEach((coin, idx) => {
 				var c = close(coin.position, char.position);
 				if (c){
 					// coin.scale.x = 0.02;
 					// coin.scale.y = 0.02;
 					// coin.scale.z = 0.02;
-					coin.visible = false;
+					coin_to_remove = idx;
+					this.coin_collected += 1;
 					// console.log("accelarate_frames: ", char.accelarate_frames);
 					if(char.accelarate_frames == 0){
 						// console.log("accelarate");
-						char.moveSpeed = 20;
-						char.accelarate_frames = 500;
-					}
-				}
-				else{
-					coin.scale.x = 0.5;
-					coin.scale.y = 0.5;
-					coin.scale.z = 0.5;
-					if(char.accelarate_frames > 0){
-						char.accelarate_frames -= 1;
-					}
-					else{
-						char.moveSpeed = 4;
+						char.moveSpeed = 8;
+						char.accelarate_frames = 100;
 					}
 				}
 				coin.frustumCulled = true;
-				// coin.onAfterRender = function(){
-				// 	coin.frustumCulled = true;
-				// 	coin.onAfterRender = function(){};
-				// };
-				// this.graphicsWorld.add(coin);
 			})
-
+			if(coin_to_remove != null){
+				this.coins_glbs[coin_to_remove].visible = false;
+				this.graphicsWorld.remove(this.coins_glbs[coin_to_remove]);
+				this.coins_glbs.splice(coin_to_remove, 1);
+			}
+			if(char.accelarate_frames > 0){
+				char.accelarate_frames -= 1;
+			}
+			else{
+				char.moveSpeed = 4;
+			}
 
 			var vase_list = this.vase.listcoins();
 			// console.log('vase_origin revising');
 			vase_list.forEach((_vase, idx_frac) => {
 				var c = close(_vase.position, char.position);
+
 				if (c|| (this.frac_meshes_start_break[idx_frac] && this.frac_frame[idx_frac] < 39)){
+					if (!this.frac_meshes_start_break[idx_frac]){
+						this.chair_broken += 1;
+					}
 					this.frac_meshes_start_break[idx_frac] = true;
 					if (this.frac_meshes_sorted[idx_frac] == false){
 						let meshes_with_index = [];
@@ -1101,45 +1270,19 @@ export class World
 					this.frac_frame[idx_frac] = idx;
 				}
 			})
-
+			
 			// track
-			var loader = new GLTFLoader();
-			var sceneFile = 'build/assets/footpoint.glb';
-			let world = this;
-			loader.load(
-				sceneFile,
-				function (gltf) {
-					gltf.scene.traverse(function (child) {
-						if ((child as THREE.Mesh).isMesh) {
-							// child.frustumCulled = false;
-							child.receiveShadow = false;
-							child.castShadow = false;
-							child.position.x = char.position.x;
-							child.position.y = char.position.y - 0.7;
-							child.position.z = char.position.z;
-							child.scale.x = 0.2;
-							child.scale.y = 0.01;
-							child.scale.z = 0.2;
-							child.rotateY(Math.PI/2);
-							child.visible = true;
-
-							// child.frustumCulled = false;
-							// child.onAfterRender = function(){
-							// 	child.frustumCulled = true;
-							// 	child.onAfterRender = function(){};
-							// };
-						}
-					})
-					world.graphicsWorld.add(gltf.scene);
-					// console.log("add footpoint: ", char.position);
-				},
-				(xhr) => {
-					// // console.log((xhr.loaded / xhr.total) * 100 + '% loaded', idx);
-				},
-				(error) => {
-					console.log(error);
-				}
-			);
+			var new_ft = this.footpoint.clone();
+			if(this.footpoints.length > 100){
+				let ft = this.footpoints.shift();
+				this.graphicsWorld.remove(ft);
+			}
+			new_ft.position.x = char.position.x;
+			new_ft.position.y = char.position.y-0.5;
+			new_ft.position.z = char.position.z;
+			this.footpoints.push(new_ft);
+			this.graphicsWorld.add(new_ft);
+			
 		});
 
 		this.vehicles.forEach((vehicle) => {
@@ -1165,21 +1308,19 @@ export class World
 				return dist < 1;
 			}
 
-			this.coins_glbs.forEach(coin => {
+			var coin_to_remove = null;
+			this.coins_glbs.forEach((coin, idx) => {
 				var c = close(coin.position, new THREE.Vector3(char.position.x, char.position.y, char.position.z));
 				if (c){
-					// coin.scale.x = 0.02;
-					// coin.scale.y = 0.02;
-					// coin.scale.z = 0.02;
-					coin.visible = false;
+					coin_to_remove = idx;
 				}
-				else{
-					coin.scale.x = 0.5;
-					coin.scale.y = 0.5;
-					coin.scale.z = 0.5;
-				}
-				// this.graphicsWorld.add(coin);
+				coin.frustumCulled = true;
 			})
+			if(coin_to_remove != null){
+				this.coins_glbs[coin_to_remove].visible = false;
+				this.graphicsWorld.remove(this.coins_glbs[coin_to_remove]);
+				this.coins_glbs.splice(coin_to_remove, 1);
+			}
 
 
 			var vase_list = this.vase.listcoins();
@@ -1249,6 +1390,35 @@ export class World
 					this.frac_frame[idx_frac] = idx;
 				}
 			})
+
+			if (this.car_racing_game){
+				// update checkpoint 
+	
+				var seq:number;
+				var wait_idx: number=null;
+				// console.log(this.ckpts);
+				for(var idx=0; idx < this.ckpts.length;idx++){
+					var range_with_theta = this.ckpts[idx]
+					var offset:number;
+					var range, central_theta:number;
+					seq = range_with_theta[1];
+					if(seq == this.ckpt_seq){
+						wait_idx = idx
+					}
+				}
+				
+				if(wait_idx != null){
+					var range = this.ckpts[wait_idx][0];
+					// new THREE.Vector3(char.position.x, char.position.y, char.position.z)
+					var in_region = pointInRectangle([char.position.x, char.position.z], range);
+					if (in_region){
+						// in rect here
+						this.ckpt_seq += 1;
+					}
+				}
+	
+				
+			}
 		});
 
 	}
@@ -1281,11 +1451,31 @@ export class World
 	    this.progressBar = document.getElementById('progressBar');
 	    this.progress[name] = new Array(length * 3).fill('🔴');
 	    this.progressBar.innerText = Object.keys(this.progress).map(key => this.progress[key].join('')).join('|');
+		this.onload += (length*3);
+		this.total_load += (length*3);
 	}
 	public updateProgressBar(name, index) {
 	    this.progressBar = document.getElementById('progressBar');
 	    this.progress[name][index] = '🟢';
 	    this.progressBar.innerText = Object.keys(this.progress).map(key => this.progress[key].join('')).join('|');
+		this.onload -= 1;
+		let all_loaded = (this.onload == 0);
+		// console.log(this.progressBar.innerText);
+		if (this.loadingManager != null && all_loaded && this.interface_loaded ){
+			if (this.loadingManager.onFinishedCallback !== undefined) 
+			{
+				this.loadingManager.onFinishedCallback();
+			}
+			else
+			{
+				UIManager.setUserInterfaceVisible(true);
+			}
+
+			UIManager.setLoadingScreenVisible(false);
+			this.progressBar.innerText = "";
+			var progressBar = document.getElementById('progressBarw');
+			progressBar.innerText = "";
+		}
 	}
 
 	/**
@@ -1362,7 +1552,102 @@ export class World
 	}
 
 	public loadScene(loadingManager: LoadingManager, gltf: any): void
-	{
+	{	
+
+		// load uvmapping ply and texs first
+		this.kitti_uvmodel_num = 20;
+		for(let i=0; i < this.kitti_uvmodel_num;i++){
+			this.kitti_uv_models_loaded.push(false);
+		}
+
+
+		this.init_uvmapping_ply(this, external+'kitti-rpd/4240-4314-rebuild/', 0, 1.006);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/4290-4364-rebuild/', 1, 1.001);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/7606-7665-rebuild/', 6, 0.996);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/7606-7665-rebuild-2/', 15, 1, 1);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/7606-7665-rebuild-3/', 18, 1, 1);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/7646-7715-rebuild/', 7, 0.997);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/7646-7715-rebuild-2/', 19, 1, 1);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/corner-1-rebuild/', 11, 1.007);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/6354-6433-rebuild/', 2, 1.002);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/6354-6433-rebuild-2/', 16, 1.007, 1);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/6414-6493-rebuild/', 3, 1.003);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/6474-6553-rebuild/', 4, 1.004);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/6498-6577-rebuild/', 5, 1.005);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/corner-2-rebuild/', 12, 1.008);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/10919-11000-rebuild/', 9, 1.);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/10919-11000-rebuild-2/', 17, 1.008, 1);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/10980-11050-rebuild/', 10, 1.001);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/corner-4-rebuild/', 14, 1.01);
+		this.init_uvmapping_ply(this, external+'kitti-rpd/corner-3-rebuild/', 13, 1.011);
+
+
+		this.init_trimesh_collision(this, external+'kitti-collisions/4240-4314-rebuild/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/4290-4364-rebuild/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/7606-7665-rebuild/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/7606-7665-rebuild-2/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/7606-7665-rebuild-3/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/7646-7715-rebuild/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/7646-7715-rebuild-2/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/corner-1-rebuild/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/6354-6433-rebuild/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/6354-6433-rebuild-2/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/6414-6493-rebuild/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/6474-6553-rebuild/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/6498-6577-rebuild/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/corner-2-rebuild/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/10919-11000-rebuild/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/10919-11000-rebuild-2/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/10980-11050-rebuild/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/corner-4-rebuild/');
+		this.init_trimesh_collision(this, external+'kitti-collisions/corner-3-rebuild/');
+
+		// this.init_bakedsdf_bbox(this, 'src/bboxes/');
+		// this.init_shadow(this, 'src/shadow.json');
+        // this.init_nerf(this, external+'chair', 0.5, new THREE.Vector3(2.0, 15.3, 0.0), true, null, false);
+
+		// track
+		var footpointloader = new GLTFLoader();
+		var sceneFile = 'build/assets/footpoint.glb';
+		let world = this;
+		footpointloader.load(
+			sceneFile,
+			function (gltf) {
+				gltf.scene.traverse(function (child) {
+					if ((child as THREE.Mesh).isMesh) {
+						// child.frustumCulled = false;
+						child.receiveShadow = false;
+						child.castShadow = false;
+						// child.position.x = char.position.x;
+						// child.position.y = char.position.y - 0.7;
+						// child.position.z = char.position.z;
+						child.scale.x = 0.2;
+						child.scale.y = 0.01;
+						child.scale.z = 0.2;
+						child.rotateY(Math.PI/2);
+						child.visible = true;
+
+						// child.frustumCulled = false;
+						// child.onAfterRender = function(){
+						// 	child.frustumCulled = true;
+						// 	child.onAfterRender = function(){};
+						// };
+						world.footpoint = (child as THREE.Mesh);
+					}
+				})
+				// world.graphicsWorld.add(gltf.scene);
+				// console.log("add footpoint: ", char.position);
+			},
+			(xhr) => {
+				// // console.log((xhr.loaded / xhr.total) * 100 + '% loaded', idx);
+			},
+			(error) => {
+				console.log(error);
+			}
+		);
+		
+
+
 		gltf.scene.traverse((child) => {
 			if (child.hasOwnProperty('userData'))
 			{
@@ -1667,7 +1952,11 @@ export class World
 													}
 												});
 												nerf_gLoadedOBJs++;
-											});
+											},
+											function ( xhr ) {},
+											// called when loading has errors
+											function ( error ) {}
+										);
 									}
 
 									world.full_meshes[idx] = [];
@@ -1699,7 +1988,11 @@ export class World
 													}
 												});
 												nerf_gLoadedOBJs++;
-											});
+											},
+											function ( xhr ) {},
+											// called when loading has errors
+											function ( error ) {}
+										);
 									}
 								}
 								console.log('load nerf scene');
@@ -1770,7 +2063,7 @@ export class World
 								shape.collisionFilterMask = ~CollisionGroups.TrimeshColliders;
 							});
 
-							this.physicsWorld.addBody(phys.body);
+							this.blender_collisions.push(phys.body)
 						}
 					}
 
@@ -1804,11 +2097,58 @@ export class World
 							this.cameraOperator.range_ctrler.push([rect, child.userData.theta, child.userData.offset]);
 						}
 					}
+
+					if (child.userData.data === 'ckpt')
+					{
+						if (child.userData.shape === 'box')
+						{
+							child.visible = false;
+							var rect_p1 = new THREE.Vector4(-1, 0, -1, 1);
+							var rect_p2 = new THREE.Vector4(1, 0, -1, 1);
+							var rect_p3 = new THREE.Vector4(1, 0, 1, 1);
+							var rect_p4 = new THREE.Vector4(-1, 0, 1, 1);
+							
+							let rot_matrix = new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion(child.quaternion._x, child.quaternion._y, child.quaternion._z, child.quaternion._w));
+							let translate_matrix = new THREE.Matrix4().makeTranslation(child.position.x, child.position.y, child.position.z);
+							let scale_matrix = new THREE.Matrix4().makeScale(child.scale.x, child.scale.y, child.scale.z);
+							let T_matrix = new THREE.Matrix4().multiplyMatrices(translate_matrix, new THREE.Matrix4().multiplyMatrices(rot_matrix, scale_matrix));
+							
+							rect_p1 = rect_p1.applyMatrix4(T_matrix);
+							rect_p2 = rect_p2.applyMatrix4(T_matrix);
+							rect_p3 = rect_p3.applyMatrix4(T_matrix);
+							rect_p4 = rect_p4.applyMatrix4(T_matrix);
+
+							var rect: [[number, number], [number, number], [number, number], [number, number]] = [
+								[rect_p1.x / rect_p1.w, rect_p1.z / rect_p1.w],
+								[rect_p2.x / rect_p2.w, rect_p2.z / rect_p2.w],
+								[rect_p3.x / rect_p3.w, rect_p3.z / rect_p3.w],
+								[rect_p4.x / rect_p4.w, rect_p4.z / rect_p4.w]
+							]
+							// console.log(rect,  child.userData.theta, child.userData.offset);
+							this.ckpts.push([rect, child.userData.seq]);
+						}
+					}
+
+
 				}
 			}
 		});
 
 		this.graphicsWorld.add(gltf.scene);
+
+		// while(true){
+		// 	let unloaded = false;
+		// 	// console.log(this.kitti_uv_models_loaded);
+		// 	this.kitti_uv_models_loaded.forEach(pname => {
+		// 		if(!pname){
+		// 			unloaded = true;
+		// 		}
+		// 	});
+		// 	if(!unloaded){
+		// 		break;
+		// 	}
+		// }
+
 
 		// Launch default scenario
 		let defaultScenarioID: string;
@@ -1957,7 +2297,7 @@ export class World
 			Debug_FPS: false,
 			Sun_Elevation: 50,
 			Sun_Rotation: 145,
-			fix_camera_y: 14.0
+			fix_camera_y: CH
 		};
 
 		const gui = new GUI.GUI();
@@ -1968,21 +2308,7 @@ export class World
 
 		// World
 		let worldFolder = gui.addFolder('World');
-		worldFolder.add(this.params, 'Time_Scale', 0, 1).listen()
-			.onChange((value) =>
-			{
-				scope.timeScaleTarget = value;
-			});
-		worldFolder.add(this.params, 'Sun_Elevation', 0, 180).listen()
-			.onChange((value) =>
-			{
-				scope.sky.phi = value;
-			});
-		worldFolder.add(this.params, 'Sun_Rotation', 0, 360).listen()
-			.onChange((value) =>
-			{
-				scope.sky.theta = value;
-			});
+		
 		worldFolder.add(this.params, 'fix_camera_y', 13.0, 14.5).listen()
 			.onChange((value) =>
 			{
@@ -1991,33 +2317,8 @@ export class World
 
 		// Input
 		let settingsFolder = gui.addFolder('Settings');
-		settingsFolder.add(this.params, 'FXAA');
-		settingsFolder.add(this.params, 'Shadows')
-			.onChange((enabled) =>
-			{
-				if (enabled)
-				{
-					this.sky.csm.lights.forEach((light) => {
-						light.castShadow = true;
-					});
-				}
-				else
-				{
-					this.sky.csm.lights.forEach((light) => {
-						light.castShadow = false;
-					});
-				}
-			});
-		settingsFolder.add(this.params, 'Pointer_Lock')
-			.onChange((enabled) =>
-			{
-				scope.inputManager.setPointerLock(enabled);
-			});
-		settingsFolder.add(this.params, 'Mouse_Sensitivity', 0, 1)
-			.onChange((value) =>
-			{
-				scope.cameraOperator.setSensitivity(value, value * 0.8);
-			});
+
+		
 		settingsFolder.add(this.params, 'Debug_Physics')
 			.onChange((enabled) =>
 			{

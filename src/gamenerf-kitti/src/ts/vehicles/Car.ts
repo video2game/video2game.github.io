@@ -97,13 +97,13 @@ export class Car extends Vehicle implements IControllable
 		const engineForce = 500;
 		const maxGears = 5;
 		const gearsMaxSpeeds = {
-			'R': -4,
+			'R': -5,
 			'0': 0,
-			'1': 5,
-			'2': 9,
-			'3': 13,
-			'4': 17,
-			'5': 22,
+			'1': 5/4,
+			'2': 9/4,
+			'3': 13/4,
+			'4': 17/4,
+			'5': 22/4,
 		};
 
 		if (this.shiftTimer > 0)
@@ -315,14 +315,6 @@ export class Car extends Vehicle implements IControllable
 			{
 				keys: ['F'],
 				desc: 'Exit vehicle'
-			},
-			{
-				keys: ['Shift', '+', 'R'],
-				desc: 'Respawn'
-			},
-			{
-				keys: ['Shift', '+', 'C'],
-				desc: 'Free camera'
 			},
 		]);
 	}

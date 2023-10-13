@@ -62,16 +62,7 @@ export class LoadingManager
 
 		if (this.isLoadingDone())
 		{
-			if (this.onFinishedCallback !== undefined) 
-			{
-				this.onFinishedCallback();
-			}
-			else
-			{
-				UIManager.setUserInterfaceVisible(true);
-			}
-
-			UIManager.setLoadingScreenVisible(false);
+			this.world.interface_loaded = true;
 		}
 	}
 
@@ -90,7 +81,8 @@ export class LoadingManager
 					buttonsStyling: false,
 					onClose: () => {
 						this.world.setTimeScale(1);
-						UIManager.setUserInterfaceVisible(true);
+						this.world.msec = 0;
+						// UIManager.setUserInterfaceVisible(true);
 					}
 				});
 			};
