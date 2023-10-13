@@ -49,8 +49,8 @@ import {Geometry, Face3} from 'three/examples/jsm/deprecated/Geometry'
 // app.use(cors());
 
 const SCALE = 34.77836216;
-// const external = 'https://huggingface.co/hongchi/video2game_v1.0/resolve/main/'
-const external = './nerf_models/'
+const external = 'https://huggingface.co/hongchi/video2game_v1.0/resolve/main/'
+// const external = './nerf_models/'
 const CH = 14.5;
 
 function distance(point, rectangle) {
