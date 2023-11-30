@@ -25,6 +25,56 @@
   height: 450px;
   border-radius: 15px;
   */
+  width: 1000px;
+  height: 370px;
+  border-radius: 12px;
+}
+#dynamic-carousel-2.glide video, #static-carousel-2.glide video {
+  /*
+  width: 600px;
+  height: 450px;
+  border-radius: 15px;
+  */
+  width: 1000px;
+  height: 370px;
+  border-radius: 12px;
+}
+#dynamic-carousel-kitti.glide video, #static-carousel-kitti.glide video {
+  /*
+  width: 600px;
+  height: 450px;
+  border-radius: 15px;
+  */
+  width: 704px;
+  height: 188px;
+  border-radius: 12px;
+}
+#dynamic-carousel-kitti-2.glide video, #static-carousel-kitti-2.glide video {
+  /*
+  width: 600px;
+  height: 450px;
+  border-radius: 15px;
+  */
+  width: 704px;
+  height: 188px;
+  border-radius: 12px;
+}
+#dynamic-carousel-kitti-3.glide video, #static-carousel-kitti-3.glide video {
+  /*
+  width: 600px;
+  height: 450px;
+  border-radius: 15px;
+  */
+  width: 704px;
+  height: 188px;
+  border-radius: 12px;
+}
+#dynamic-carousel-kitti-4.glide video, #static-carousel-kitti-4.glide video {
+  /*
+  width: 600px;
+  height: 450px;
+  border-radius: 15px;
+  */
   width: 704px;
   height: 188px;
   border-radius: 12px;
