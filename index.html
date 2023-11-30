@@ -50,6 +50,41 @@
       autoplay: 13000,
       hoverpause: true
     }).mount();
+    new Glide("#dynamic-carousel-2", {
+      type: "carousel",
+      perView: 1.68,
+      focusAt: "center",
+      autoplay: 13000,
+      hoverpause: true
+    }).mount();
+    new Glide("#dynamic-carousel-kitti", {
+      type: "carousel",
+      perView: 1.68,
+      focusAt: "center",
+      autoplay: 13000,
+      hoverpause: true
+    }).mount();
+    new Glide("#dynamic-carousel-kitti-2", {
+      type: "carousel",
+      perView: 1.68,
+      focusAt: "center",
+      autoplay: 13000,
+      hoverpause: true
+    }).mount();
+    new Glide("#dynamic-carousel-kitti-3", {
+      type: "carousel",
+      perView: 1.68,
+      focusAt: "center",
+      autoplay: 13000,
+      hoverpause: true
+    }).mount();
+    new Glide("#dynamic-carousel-kitti-4", {
+      type: "carousel",
+      perView: 1.68,
+      focusAt: "center",
+      autoplay: 13000,
+      hoverpause: true
+    }).mount();
     new Glide("#static-carousel", {
       type: "carousel",
       perView: 1.68,
@@ -141,7 +176,7 @@
             Try Our Video2Game KITTI-360 Loop Demo Above!
         </h4>
         <div class="text-justify">
-            Note: <b>Warning!</b> You might suffer from CORS problem when loading assets from our storage.  If you come across of the problem that the assets can't be loaded, the world is empty and the player keeps falling down, <b>please install "Allow CORS" browser plugin</b>. For Edge and Chrome users, we have provided links: <a href="https://microsoftedge.microsoft.com/addons/detail/allow-cors-accesscontro/bhjepjpgngghppolkjdhckmnfphffdag" target="_blank">Edge Allow CORS Plugin</a> and <a href="https://chrome.google.com/webstore/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf/related" target="_blank">Chrome Allow CORS Plugin</a>. After install the browser plugin, <b>please remember to activate it to ON mode so as to enable it</b>. <b>If you observe that the player stand still and the world is empty, it means that the assets are being downloaded and it takes some time</b>.
+            <!-- Note: <b>Warning!</b> You might suffer from CORS problem when loading assets from our storage.  If you come across of the problem that the assets can't be loaded, the world is empty and the player keeps falling down, <b>please install "Allow CORS" browser plugin</b>. For Edge and Chrome users, we have provided links: <a href="https://microsoftedge.microsoft.com/addons/detail/allow-cors-accesscontro/bhjepjpgngghppolkjdhckmnfphffdag" target="_blank">Edge Allow CORS Plugin</a> and <a href="https://chrome.google.com/webstore/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf/related" target="_blank">Chrome Allow CORS Plugin</a>. After install the browser plugin, <b>please remember to activate it to ON mode so as to enable it</b>. <b>If you observe that the player stand still and the world is empty, it means that the assets are being downloaded and it takes some time</b>. -->
         </div>
         <!-- <center>
           <img src="./src/images/rendering.png" class="img-responsive" alt="rendering" width="80%"
@@ -198,7 +233,7 @@
     <div class="row">
       <div class="col-sm-10 col-sm-offset-1 text-center">
         <!-- Reconstruction, Normal, Albedo, Shading, Visibility, Semantics -->
-        <img src="./src/images/teaser.jpg" class="img-responsive" alt="overview" width="100%"
+        <img src="./src/images/teaser.png" class="img-responsive" alt="overview" width="100%"
             style="max-height: 450px;margin:auto;">
       </div>
     </div>
@@ -210,8 +245,15 @@
             Abstract 
         </h3>
         <div class="text-justify">
-            We present <b>Video2Game</b>, a novel approach for creating a realistic,  interactive virtual environment from <b>a single video</b>. 
-            Video2Game comprises three essential components: (i) a neural fields-based modeling and meshing module that takes a single video as input and generates a meshed scene model, (ii) a physics baking module that enables user interaction with the environment, and (iii) a WebGL-based game engine that imports our automatically generated assets and assembles a playable game. With the generic pipeline, we are capable of constructing real-time, photo-realistic games from videos of various scenes. Compared to previous work on neural rendering and reconstruction, our approach is much more generalizable and yields superior or comparable results.
+          Creating high-quality and interactive virtual environments, such as games and simulators, often involves complex and costly manual modeling processes. 
+          In this paper, we present <b>Video2Game</b>, a novel approach that automatically converts videos of real-world scenes into realistic and interactive game environments. 
+          At the heart of our system are three core components: 
+          <b>(i)</b> a neural radiance fields (NeRF) module that effectively captures the geometry and visual appearance of the scene; 
+          <b>(ii)</b> a mesh module that distills the knowledge from NeRF for faster rendering; 
+          and <b>(iii)</b> a physics module that models the interactions and physical dynamics among the objects. 
+          By following the carefully designed pipeline, one can construct an interactable and actionable digital replica of the real world. 
+          We benchmark our system on both indoor and large-scale outdoor scenes. 
+          We show that we can not only produce highly-realistic renderings in real-time, but also build interactive games on top. 
         </div>
         <!-- <center>
           <img src="./src/images/rendering.png" class="img-responsive" alt="rendering" width="80%"
@@ -220,7 +262,7 @@
       </div>
     </div>
 
-    <div class="row">
+    <!-- <div class="row">
       <div class="col-md-10 col-md-offset-1">
         <h3>
           Overall
@@ -234,23 +276,266 @@
           </video>
         </center>
       </div>
-    </div>
+    </div> -->
+
 
     <div class="row">
       <div class="col-md-10 col-md-offset-1">
         <h3>
-          Pipeline
+          Gaming: Navigating in Gardenvase scene
         </h3>
         <div class="text-justify">
-          <b>Video2Game method overview.</b> Video2Game employs multiple posed images from a single video as its input. Our methodology begins with the construction of a large-scale NeRF model that is consistent, realistic, and has high-quality surface geometry. We then transform this NeRF into a mesh representation compatible with game engines, complete with UV-mapped, relightable textures. In the final step, we deploy the meshified NeRF within an interactive environment that can engage with virtual actors, react to user control, and deliver high-resolution rendering from novel camera perspectives—all in real time.
+          Agents can navigate the area freely within the virtual environment where their actions follow real-world physics and are constrained by collision models. Also, players could also interact with extra inserted objects like footballs, all adhering to the physical law.
         </div>
+      </div>
+    </div>
+    
+
+    <div class="glide" id="dynamic-carousel">
+      <div class="glide__track" data-glide-el="track">
+        <ul class="glide__slides">
+          <li class="glide__slide">
+            <video controls muted loop autoplay>
+              <source src="src/video2game/demo/garden_nav.mp4" type="video/mp4"/>
+            </video>
+          </li>
+          <li class="glide__slide">
+            <video controls muted loop autoplay>
+              <source src="src/video2game/demo/garden_kick.mp4" type="video/mp4"/>
+            </video>
+          </li>
+        </ul>
+      </div>
+
+      <div class="glide__arrows" data-glide-el="controls">
+        <span class="glide__arrow glide__arrow--left" data-glide-dir="<"><img src="resources/arrow-left-circle-fill.svg"/></span>
+        <span class="glide__arrow glide__arrow--right" data-glide-dir=">"><img src="resources/arrow-right-circle-fill.svg"/></span>
+      </div>
+      <div class="glide__bullets" data-glide-el="controls[nav]">
+        <span class="glide__bullet" data-glide-dir="=0"></span>
+        <span class="glide__bullet" data-glide-dir="=1"></span>
+      </div>
+    </div>
+
+
+    <div class="row">
+      <div class="col-md-10 col-md-offset-1">
+        <h3>
+          Gaming: Shooting in Gardenvase scene
+        </h3>
+        <div class="text-justify">
+            For realistic shooting physics, we calculated the rigid-body collision dynamics for both the central vase and the surrounding scene, separated using mesh semantic filtering. We used a box collider for the vase and convex polygon colliders for the background. The player shoots footballs with a sphere collider at the vase on the table, causing it to fly off and fall to the ground.
+        </div>
+      </div>
+    </div>
+
+    <div class="glide" id="dynamic-carousel-2">
+      <div class="glide__track" data-glide-el="track">
+        <ul class="glide__slides">
+          <li class="glide__slide">
+            <video controls muted loop autoplay>
+              <source src="src/video2game/demo/garden_shoot1.mp4" type="video/mp4"/>
+            </video>
+          </li>
+          <li class="glide__slide">
+            <video controls muted loop autoplay>
+              <source src="src/video2game/demo/garden_shoot2.mp4" type="video/mp4"/>
+            </video>
+          </li>
+        </ul>
+      </div>
+
+      <div class="glide__arrows" data-glide-el="controls">
+        <span class="glide__arrow glide__arrow--left" data-glide-dir="<"><img src="resources/arrow-left-circle-fill.svg"/></span>
+        <span class="glide__arrow glide__arrow--right" data-glide-dir=">"><img src="resources/arrow-right-circle-fill.svg"/></span>
+      </div>
+      <div class="glide__bullets" data-glide-el="controls[nav]">
+        <span class="glide__bullet" data-glide-dir="=0"></span>
+        <span class="glide__bullet" data-glide-dir="=1"></span>
+      </div>
+    </div>
+
+
+
+    <div class="row">
+      <div class="col-md-10 col-md-offset-1">
+        <h3>
+          Gaming: Collecting coins in KITTI-360 scene
+        </h3>
+        <div class="text-justify">
+          The agent collects coins while running in the KITTI Loop composed of four streets in KITTI-360. 
+        </div>
+      </div>
+    </div>
+
+    <div class="glide" id="dynamic-carousel-kitti">
+      <div class="glide__track" data-glide-el="track">
+        <ul class="glide__slides">
+          <li class="glide__slide">
+            <video controls muted loop autoplay>
+              <source src="src/video2game/demo/kitti_coin1.mp4" type="video/mp4"/>
+            </video>
+          </li>
+          <li class="glide__slide">
+            <video controls muted loop autoplay>
+              <source src="src/video2game/demo/kitti_coin2.mp4" type="video/mp4"/>
+            </video>
+          </li>
+          <li class="glide__slide">
+            <video controls muted loop autoplay>
+              <source src="src/video2game/demo/kitti_coin3.mp4" type="video/mp4"/>
+            </video>
+          </li>
+          <li class="glide__slide">
+            <video controls muted loop autoplay>
+              <source src="src/video2game/demo/kitti_coin4.mp4" type="video/mp4"/>
+            </video>
+          </li>
+        </ul>
+      </div>
+
+      <div class="glide__arrows" data-glide-el="controls">
+        <span class="glide__arrow glide__arrow--left" data-glide-dir="<"><img src="resources/arrow-left-circle-fill.svg"/></span>
+        <span class="glide__arrow glide__arrow--right" data-glide-dir=">"><img src="resources/arrow-right-circle-fill.svg"/></span>
+      </div>
+      <div class="glide__bullets" data-glide-el="controls[nav]">
+        <span class="glide__bullet" data-glide-dir="=0"></span>
+        <span class="glide__bullet" data-glide-dir="=1"></span>
+        <span class="glide__bullet" data-glide-dir="=2"></span>
+        <span class="glide__bullet" data-glide-dir="=3"></span>
+      </div>
+    </div>
+
+
+    <div class="row">
+      <div class="col-md-10 col-md-offset-1">
+        <h3>
+          Gaming: Chair fracturing in KITTI-360 scene
+        </h3>
+        <div class="text-justify">
+          Obstructive chairs on the road can be smashed thanks to pre-computed fracture animations. 
+        </div>
+      </div>
+    </div>
+
+    <div class="glide" id="dynamic-carousel-kitti-2">
+      <div class="glide__track" data-glide-el="track">
+        <ul class="glide__slides">
+          <li class="glide__slide">
+            <video controls muted loop autoplay>
+              <source src="src/video2game/demo/kitti_chair1.mp4" type="video/mp4"/>
+            </video>
+          </li>
+          <li class="glide__slide">
+            <video controls muted loop autoplay>
+              <source src="src/video2game/demo/kitti_chair2.mp4" type="video/mp4"/>
+            </video>
+          </li>
+        </ul>
+      </div>
+
+      <div class="glide__arrows" data-glide-el="controls">
+        <span class="glide__arrow glide__arrow--left" data-glide-dir="<"><img src="resources/arrow-left-circle-fill.svg"/></span>
+        <span class="glide__arrow glide__arrow--right" data-glide-dir=">"><img src="resources/arrow-right-circle-fill.svg"/></span>
+      </div>
+      <div class="glide__bullets" data-glide-el="controls[nav]">
+        <span class="glide__bullet" data-glide-dir="=0"></span>
+        <span class="glide__bullet" data-glide-dir="=1"></span>
+      </div>
+    </div>
+
+
+    <div class="row">
+      <div class="col-md-10 col-md-offset-1">
+        <h3>
+          Gaming: Car racing in KITTI-360 scene
+        </h3>
+        <div class="text-justify">
+          The agent can also drive cars in the scene. 
+        </div>
+      </div>
+    </div>
+
+    <div class="glide" id="dynamic-carousel-kitti-3">
+      <div class="glide__track" data-glide-el="track">
+        <ul class="glide__slides">
+          <li class="glide__slide">
+            <video controls muted loop autoplay>
+              <source src="src/video2game/demo/kitti_car1.mp4" type="video/mp4"/>
+            </video>
+          </li>
+          <li class="glide__slide">
+            <video controls muted loop autoplay>
+              <source src="src/video2game/demo/kitti_car2.mp4" type="video/mp4"/>
+            </video>
+          </li>
+        </ul>
+      </div>
+
+      <div class="glide__arrows" data-glide-el="controls">
+        <span class="glide__arrow glide__arrow--left" data-glide-dir="<"><img src="resources/arrow-left-circle-fill.svg"/></span>
+        <span class="glide__arrow glide__arrow--right" data-glide-dir=">"><img src="resources/arrow-right-circle-fill.svg"/></span>
+      </div>
+      <div class="glide__bullets" data-glide-el="controls[nav]">
+        <span class="glide__bullet" data-glide-dir="=0"></span>
+        <span class="glide__bullet" data-glide-dir="=1"></span>
+      </div>
+    </div>
+
+
+    <div class="row">
+      <div class="col-md-10 col-md-offset-1">
+        <h3>
+          Gaming: Car crashing in KITTI-360 scene
+        </h3>
+        <div class="text-justify">
+          The agent can also drive and push roadside vehicles existing in the scene forward by crashing into them. This interactivity is achieved through rigid-body dynamics simulation and collision modeling. 
+        </div>
+      </div>
+    </div>
+
+    <div class="glide" id="dynamic-carousel-kitti-4">
+      <div class="glide__track" data-glide-el="track">
+        <ul class="glide__slides">
+          <li class="glide__slide">
+            <video controls muted loop autoplay>
+              <source src="src/video2game/demo/kitti_crash1.mp4" type="video/mp4"/>
+            </video>
+          </li>
+          <li class="glide__slide">
+            <video controls muted loop autoplay>
+              <source src="src/video2game/demo/kitti_crash2.mp4" type="video/mp4"/>
+            </video>
+          </li>
+        </ul>
+      </div>
+
+      <div class="glide__arrows" data-glide-el="controls">
+        <span class="glide__arrow glide__arrow--left" data-glide-dir="<"><img src="resources/arrow-left-circle-fill.svg"/></span>
+        <span class="glide__arrow glide__arrow--right" data-glide-dir=">"><img src="resources/arrow-right-circle-fill.svg"/></span>
+      </div>
+      <div class="glide__bullets" data-glide-el="controls[nav]">
+        <span class="glide__bullet" data-glide-dir="=0"></span>
+        <span class="glide__bullet" data-glide-dir="=1"></span>
+      </div>
+    </div>
+
+
+    <div class="row">
+      <div class="col-md-10 col-md-offset-1">
+        <h3>
+          Robot Simulation: Stretch robot in VRNeRF scene
+        </h3>
+        <div class="text-justify">
+          We demonstrate the potential of leveraging Video2Game for robot simulation using the VRNeRF dataset. We reconstruct the scene and segment simulatable rigid-body objects (e.g., the fruit bowl on the table). We show that a Stretch Robot is pushing the bowl off the table.
+        </div>
+
         <center>
-          <img src="src/video2game/pipeline.png" width="100%" height="500px">
-        </center>
-        <center>
-          <video controls muted loop autoplay>
-            <source src="src/video2game/clip_pipeline.mp4" type="video/mp4"/>
-          </video>
+          <div class="container" style="overflow: hidden; display: block; margin: auto; position: relative; left: -250px;">
+            <video controls muted loop autoplay style="margin-right: -510px; margin-bottom: -100px;">
+              <source src="src/video2game/demo/robot1.mp4" type="video/mp4"/>
+            </video>
+          </div>
         </center>
         
       </div>
@@ -259,85 +544,64 @@
     <div class="row">
       <div class="col-md-10 col-md-offset-1">
         <h3>
-          Gaming: Temple-run
+          Robot Simulation: Fetch robot in VRNeRF scene
         </h3>
         <div class="text-justify">
-            Video2Game allows us to make realistic, interactive game through a web browser. The player can walk freely in game environment like Temple-run and leave tracks behind.
+          Utilizing PyBullet's integrated robotic inverse kinematics, we can effectively control the mechanical arms of the robots to interact with surrounding objects. For the Fetch Robot, we leverage the collision boxes specified in its URDF file. Our manipulation involves grasping the corresponding collision model of the central bowl on the table, eschewing the use of the magnetic gripper for object control. Subsequently, the robot lifts the bowl and relocates it to a different position.
         </div>
 
         <center>
-          <video controls muted loop autoplay>
-            <source src="src/video2game/clip_templerun.mp4" type="video/mp4"/>
-          </video>
+          <div class="container" style="overflow: hidden; display: block; margin: auto; position: relative; left: -250px;">
+            <video controls muted loop autoplay style="margin-right: -510px; margin-bottom: -100px;">
+              <source src="src/video2game/demo/robot2.mp4" type="video/mp4"/>
+            </video>
+          </div>
         </center>
+        
       </div>
     </div>
+    
+
 
     <div class="row">
       <div class="col-md-10 col-md-offset-1">
         <h3>
-          Gaming: Running and Jumping
+          Overall Pipeline
         </h3>
         <div class="text-justify">
-          The player can also accelerate and jump in the realistic game environment.
+          Given multiple posed images from a single video as input, we first construct a large-scale NeRF model that is realistic and possesses high-quality surface geometry. We then transform this NeRF model into a mesh representation with corresponding rigid-body dynamics to enable interactions. We utilize UV-mapped neural texture, which is both expressive and compatible with game engines. Finally, we obtain an interactive virtual environment that virtual actors can interact with, can respond to user control, and deliver high-resolution rendering from novel camera perspectives -- all in real-time.
         </div>
-
         <center>
-          <video controls muted loop autoplay>
-            <source src="src/video2game/clip_runjump.mp4" type="video/mp4"/>
-          </video>
+          <img src="src/images/method.png" width="100%" height="500px">
         </center>
+        <!-- <center>
+          <video controls muted loop autoplay>
+            <source src="src/video2game/clip_pipeline.mp4" type="video/mp4"/>
+          </video>
+        </center> -->
+        
       </div>
     </div>
+
 
     <div class="row">
       <div class="col-md-10 col-md-offset-1">
         <h3>
-          Gaming: Car Racing
+          Rigid-body dynamics
         </h3>
         <div class="text-justify">
-          The game environment offers interactive car racing gaming with simulated physical engine.
+          We equip every created physical entity with various physics-related attributes so that we can effectively model and simulate their physical dynamics. Here is the visualization of automatically computed collision geometry:  Sphere collider (green), box collider (yellow), convex polygon collider (purple) and trimesh collider (red). 
         </div>
-
         <center>
-          <video controls muted loop autoplay>
-            <source src="src/video2game/clip_carrace.mp4" type="video/mp4"/>
-          </video>
+          <img src="src/images/collision.png" width="100%" height="500px">
         </center>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-10 col-md-offset-1">
-        <h3>
-          Gaming: Item Collection
-        </h3>
-        <div class="text-justify">
-            Video2Game provides interactive game environment. The player can interact with the environment. E.g. Collecting coins on the road and gets accelerated after "eating" them.
-        </div>
-
-        <center>
+        
+        <!-- <center>
           <video controls muted loop autoplay>
-            <source src="src/video2game/clip_coincol.mp4" type="video/mp4"/>
+            <source src="src/video2game/clip_pipeline.mp4" type="video/mp4"/>
           </video>
-        </center>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-10 col-md-offset-1">
-        <h3>
-          Gaming: Breaking NeRF-baked Objects
-        </h3>
-        <div class="text-justify">
-          Video2Game also supports interactive game experience like breaking NeRF-baked Objects.
-        </div>
-
-        <center>
-          <video controls muted loop autoplay>
-            <source src="src/video2game/clip_nerfbreak.mp4" type="video/mp4"/>
-          </video>
-        </center>
+        </center> -->
+        
       </div>
     </div>
 
