@@ -112,6 +112,8 @@ export declare class World {
     private init_uvmapping;
     private init_uvmapping_ply;
     private init_convex_collision_box;
+    init_trimesh_collision_glb(world: World, path: string): void;
+    private init_convex_collision_box_glb;
     private init_convex_collision_box_center;
     private init_bakedsdf_bbox;
     update(timeStep: number, unscaledTimeStep: number): void;
