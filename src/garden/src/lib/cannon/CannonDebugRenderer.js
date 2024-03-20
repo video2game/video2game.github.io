@@ -20,8 +20,9 @@ export var CannonDebugRenderer = function(scene, world, options){
 
     this._meshes = [];
 
-    this._boxMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
+    this._boxMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, wireframe: true });
     this._triMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+    this._convexMaterial = new THREE.MeshBasicMaterial({ color: 0xa020f0, wireframe: true });
     this._sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
 
     this._sphereGeometry = new THREE.SphereGeometry(1);
@@ -116,6 +117,7 @@ CannonDebugRenderer.prototype = {
         var yellow = this._sphereMaterial;
         var cyan = this._boxMaterial;
         var purple = this._triMaterial;
+        var blue = this._convexMaterial;
 
         switch(shape.type){
 
@@ -154,12 +156,16 @@ CannonDebugRenderer.prototype = {
             }
             geo.computeBoundingSphere();
             geo.computeFaceNormals();
+            // console.log(geo.vertices)
+            // console.log(geo.faces)
+            geometry = new BufferGeometry().fromGeometry(geo);
 
-            mesh = new THREE.Mesh(geo, cyan);
-            shape.geometryId = geo.id;
+            mesh = new THREE.Mesh(geometry, blue);
+            shape.geometryId = geometry.id;
             break;
 
         case CANNON.Shape.types.TRIMESH:
+            console.log("trimesh");
             var geometry = new Geometry();
             var v0 = this.tmpVec0;
             var v1 = this.tmpVec1;

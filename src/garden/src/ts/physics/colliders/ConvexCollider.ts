@@ -27,16 +27,19 @@ export class ConvexCollider implements ICollider
 		options = Utils.setDefaults(options, defaults);
 		this.options = options;
 
-		// let mat = new CANNON.Material('convMat');
-		// mat.friction = options.friction;
-		// mat.restitution = 0.7;
+		let mat = new CANNON.Material('convMat');
+		mat.friction = options.friction;
+		mat.restitution = 0.7;
+		let initialized_geometry = this.mesh.geometry.clone();
 		if (this.mesh.geometry.isBufferGeometry)
 		{
-			this.mesh.geometry = new Geometry().fromBufferGeometry(this.mesh.geometry);
+			initialized_geometry = new Geometry().fromBufferGeometry(this.mesh.geometry);
+			// console.log(this.mesh.geometry.getAttribute('position'));
+			// console.log("isBufferGeometry");
 		}
 		// this.mesh.geometry.mergeVertices(8);
 
-		let cannonPoints = this.mesh.geometry.vertices.map((v: Vector3) => {
+		let cannonPoints = initialized_geometry.vertices.map((v: Vector3) => {
 			return new CANNON.Vec3( v.x, v.y, v.z );
 		});
 		
@@ -55,7 +58,7 @@ export class ConvexCollider implements ICollider
 			quaternion: options.rotation,
 			shape
 		});
-		// physBox.material = mat;
+		physBox.material = mat;
 
 		this.body = physBox;
 	}

@@ -542,9 +542,146 @@ export let NeRFShader = {
             if (mode == 2) { // specular
                 gl_FragColor.rgb = evaluateNetwork(specular, normalize(rayDirection));
             } else { // full
-                // gl_FragColor.rgb = rayDirection;
+                // gl_FragColor.rgb = clamp(normalize(rayDirection), 0.0f, 1.0f);
                 // gl_FragColor.rgb = clamp((normalize(rayDirection) + 1.0f) / 2.0f, 0.0f, 1.0f);
                 gl_FragColor.rgb = clamp(diffuse.rgb + evaluateNetwork(specular, normalize(rayDirection)), 0.0f, 1.0f);
+                // gl_FragColor.rgb = clamp(evaluateNetwork(specular, normalize(rayDirection)), 0.0f, 1.0f);
+            }
+        }
+        gl_FragColor.a = 1.0;
+    }
+    `,
+    RenderFragShader_5sp_template: `
+    precision highp float;
+
+    varying vec2 vUv;
+    varying vec3 vPosition;
+
+    uniform int mode;
+
+    uniform highp sampler2D tDiffuse;
+    uniform highp sampler2D tSpecular;
+
+    uniform highp sampler2D weightsZero;
+    uniform highp sampler2D weightsOne;
+
+
+    uniform mat4 gmatrix_inv;
+    uniform mat3 intrinsic;
+    uniform mat3 c2w_T;
+
+    uniform float fx;
+    uniform float fy;
+    uniform float cx;
+    uniform float cy;
+
+    float inputFetch(vec4 af0, vec4 f0, vec3 viewdir, int j) {
+        float input_value = 0.0;
+        if (j < 4) {
+            input_value = (j == 0) ? viewdir.r : ((j == 1) ? viewdir.g : ((j == 2) ? viewdir.b : af0.a));
+        } else {
+            input_value = (j == 4) ? f0.r : ((j == 5) ? f0.g : ((j == 6) ? f0.b : f0.a) );
+        }
+        // if (abs(input_value) < 0.1 / 255.0) {
+        //     input_value = 0.0;
+        // }
+        return input_value;
+    }
+
+    vec3 evaluateNetwork(vec4 af0, vec4 f0, vec3 viewdir) {
+
+        // NUM_CHANNELS_ZERO (input_dim) is hard-coded as 6
+        // NUM_CHANNELS_ONE (hidden_dim) can vary, but should be divisible by 4
+        // NUM_CHANNELS_TWO (output_dim) is hard-coded as 3
+        
+        vec4 v;
+        mat4 w;
+
+        // first layer: 5+3 --> NUM_CHANNELS_ONE
+
+        vec4 result_one[NUM_CHANNELS_ONE / 4];
+
+        v = vec4(
+            inputFetch(af0, f0, viewdir, 0),
+            inputFetch(af0, f0, viewdir, 1),
+            inputFetch(af0, f0, viewdir, 2),
+            inputFetch(af0, f0, viewdir, 3)
+        );
+
+        for (int i = 0; i < NUM_CHANNELS_ONE; i += 4) {
+            w = mat4(
+                texelFetch(weightsZero, ivec2(0, i), 0),
+                texelFetch(weightsZero, ivec2(0, i + 1), 0),
+                texelFetch(weightsZero, ivec2(0, i + 2), 0),
+                texelFetch(weightsZero, ivec2(0, i + 3), 0)
+            );
+            result_one[i / 4] += v * w;
+        }
+
+        v = vec4(
+            inputFetch(af0, f0, viewdir, 4),
+            inputFetch(af0, f0, viewdir, 5),
+            inputFetch(af0, f0, viewdir, 6),
+            inputFetch(af0, f0, viewdir, 7)
+        );
+
+        for (int i = 0; i < NUM_CHANNELS_ONE; i += 4) {
+            w = mat4(
+                texelFetch(weightsZero, ivec2(0, NUM_CHANNELS_ONE + i), 0),
+                texelFetch(weightsZero, ivec2(0, NUM_CHANNELS_ONE + i + 1), 0),
+                texelFetch(weightsZero, ivec2(0, NUM_CHANNELS_ONE + i + 2), 0),
+                texelFetch(weightsZero, ivec2(0, NUM_CHANNELS_ONE + i + 3), 0)
+            );
+            result_one[i / 4] += v * w;
+        }
+
+        // second layer: NUM_CHANNELS_ONE --> 3
+
+        vec3 result;
+
+        for (int i = 0; i < NUM_CHANNELS_ONE / 4; i++) {
+            v = max(result_one[i], 0.0); // relu
+            w = mat4(
+                texelFetch(weightsOne, ivec2(0, i * 3), 0),
+                texelFetch(weightsOne, ivec2(0, i * 3 + 1), 0),
+                texelFetch(weightsOne, ivec2(0, i * 3 + 2), 0),
+                vec4(0.0) // padding
+            );
+            result += (v * w).xyz;
+        }
+
+        // sigmoid
+        return 1.0 / (1.0 + exp(-result)); 
+    }
+
+    void main() {    
+        vec4 diffuse = texture( tDiffuse, vUv );
+
+        vec4 positionCamWorld = gmatrix_inv * vec4(vPosition, 1.0);
+        positionCamWorld /= positionCamWorld.w;
+        vec3 positionScrWorld = intrinsic * vec3(positionCamWorld.xyz);
+        positionScrWorld /= positionScrWorld.z;
+        
+        float px = 2.0 * cx - positionScrWorld.x;
+        float py = positionScrWorld.y;
+        float _px = (px - cx) / fx;
+        float _py = (py - cy) / fy;
+        vec3 directionCamWorld = vec3(_px, _py, 1);
+
+        vec3 directionWorld = directionCamWorld * c2w_T;
+
+        vec3 rayDirection = directionWorld;
+
+        if (mode == 1) { // diffuse
+            gl_FragColor.rgb = diffuse.rgb;
+        } else {
+            vec4 specular = texture( tSpecular, vUv );
+            if (mode == 2) { // specular
+                gl_FragColor.rgb = evaluateNetwork(diffuse, specular, normalize(rayDirection));
+            } else { // full
+                // gl_FragColor.rgb = rayDirection;
+                // gl_FragColor.rgb = clamp((normalize(rayDirection) + 1.0f) / 2.0f, 0.0f, 1.0f);
+                gl_FragColor.rgb = clamp(diffuse.rgb + evaluateNetwork(diffuse, specular, normalize(rayDirection)), 0.0f, 1.0f);
             }
         }
         gl_FragColor.a = 1.0;

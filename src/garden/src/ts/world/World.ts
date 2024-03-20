@@ -52,12 +52,11 @@ import { SphereCollider } from '../physics/colliders/SphereCollider';
 
 const SCALE = 34.77836216;
 const GSCALE = 4.5;
-const CY = 13.8;
+const CY = 14.0;
 const external = 'https://huggingface.co/hongchi/video2game_v1.0/resolve/main/'
 // https://huggingface.co/hongchi/video2game_v1.0/resolve/main/garden/feat0_0.png
-// const external = './nerf_models/'
+// const external = './assets/'
 // const external = 'https://shenlonggroup.s3.amazonaws.com/nerf_models+2/'
-const origin = 'https://shenlonggroup.s3.amazonaws.com/'
 
 
 export class World
@@ -252,7 +251,7 @@ export class World
 
 		// Physics
 		this.physicsWorld = new CANNON.World();
-		this.physicsWorld.gravity.set(0, -9.81*2, 0);
+		this.physicsWorld.gravity.set(0, -2, 0);
 		this.physicsWorld.broadphase = new CANNON.SAPBroadphase(this.physicsWorld);
 		this.physicsWorld.solver.iterations = 10;
 		this.physicsWorld.allowSleep = true;
@@ -305,6 +304,15 @@ export class World
 			rotate_y: 0,
 			rotate_z: 0,
 		};
+		let table_pos_no_rot = {
+			position_x: 2.91317,
+			position_y: 13.8368,
+			position_z: -3.10294,
+			rotate_x: 0,
+			rotate_y: 0,
+			rotate_z: 0,
+		};
+		// console.log(new THREE.Matrix4().makeRotationX(-Math.PI/2));
 		let pot_pos_c = {
 			position_x: 2.92526,
 			position_y: 13.5972,
@@ -351,16 +359,15 @@ export class World
 		for(let i=0; i < this.kitti_uvmodel_num;i++){
 			this.kitti_uv_models_loaded.push(false);
 		}
-		this.init_uvmapping_ply(this, external+'garden/', 0);
-		// debug
-		// this.init_convex_collision_box(this, this.pot_path, floor_pos, {mass: 0}, false);
+		this.init_uvmapping_ply(this, external+'uv4096-boundary/', 0);
 
 		// vase
-		this.init_convex_collision_box_center(this, this.pot_path, pot_pos_c, pot_pos, {mass: 0.1}, true);
+		this.init_convex_collision_box_center(this, this.pot_path, pot_pos_c, pot_pos, {mass: 0.02}, true);
 
-		this.init_convex_collision_box(this, table_path, table_pos, {mass: 0}, false);
-		this.init_convex_collision_box(this, outside_path, table_pos, {mass: 0}, false);
-		
+		this.init_convex_collision_box_glb(this, "./build/assets/decomp_garden_4_rect_aabb_scale4_sf0.2_d1em2_opa4em3_normalref1em3_nosolid_center.ply/", table_pos, {mass: 0}, false);
+		this.init_convex_collision_box_glb(this, "./build/assets/decomp_garden_4_rect_aabb_scale4_sf0.2_d1em2_opa4em3_normalref1em3_nosolid_ring1_l15_c3k.ply/", table_pos, {mass: 0}, false);
+		this.init_convex_collision_box_glb(this, "./build/assets/decomp_garden_4_rect_aabb_scale4_sf0.2_d1em2_opa4em3_normalref1em3_nosolid_ring2_l15c.ply/", table_pos, {mass: 0}, false);
+		this.init_convex_collision_box_glb(this, "./build/assets/decomp_garden_4_rect_aabb_scale4_sf0.2_d1em2_opa4em3_normalref1em3_nosolid_ring3.ply/", table_pos, {mass: 0}, false);
 
 		// Load scene if path is supplied
 		if (worldScenePath !== undefined)
@@ -760,12 +767,19 @@ export class World
 				tex0.minFilter = THREE.LinearMipmapLinearFilter;
 				tex1.magFilter = THREE.LinearFilter;
 				tex1.minFilter = THREE.LinearMipmapLinearFilter;
+				
+				let mode = 0;
+				// if (cas == 1)
+				// 	mode = 1;
+				// else
+				// 	mode = 0
+
                 let newmat = new THREE.ShaderMaterial({
 					side: side,
                     vertexShader: NeRFShader.RenderVertShader.trim(),
                     fragmentShader: RenderFragShader,
                     uniforms: {
-                        'mode': { value: 0 },
+                        'mode': { value: mode },
                         'tDiffuse': { value: tex0 },
                         'tSpecular': { value: tex1 },
                         'weightsZero': { value: weightsTexZero },
@@ -922,6 +936,180 @@ export class World
 		});
 		}
 	}
+	public init_trimesh_collision_glb(world: World, path: string){
+		// _scale = 1;
+		// var cas = 0;
+		var loader = new GLTFLoader();
+
+		loader.load(
+			path,
+			function (gltf) {
+				gltf.scene.traverse(function (child) {
+					if ((child as THREE.Mesh).isMesh) {
+						child.position.x = 2.91317;
+						child.position.y = 13.8368;
+						child.position.z = -3.10294;
+						child.rotateX(3.1415927/2);
+						child.scale.x = GSCALE * 1;
+						child.scale.y = GSCALE * 1;
+						child.scale.z = GSCALE * 1;
+						let mesh = child as THREE.Mesh;
+						let phys = new TrimeshCollider(mesh, {});
+						world.physicsWorld.addBody(phys.body);
+
+						let child_shadow = (mesh as THREE.Mesh).clone();
+						child_shadow.material = new THREE.ShadowMaterial();
+						child_shadow.receiveShadow = true;
+						// child_shadow.castShadow = true;
+						child_shadow.material.opacity = 0.8;
+
+						child_shadow.frustumCulled = false;
+						// child_shadow.onAfterRender = function(){
+						// 	child_shadow.frustumCulled = true;
+						// 	child_shadow.onAfterRender = function(){};
+						// };
+
+						world.sky.csm.setupMaterial(child_shadow.material);
+						world.graphicsWorld.add(child_shadow);
+					}
+				})
+			},
+			(xhr) => {
+			},
+			(error) => {
+				console.log(error);
+			}
+		);
+
+		
+	}
+
+	
+	private init_convex_collision_box_glb(world: World, path: string, mesh_pos, options, track: boolean): void {
+		let collider = new CANNON.Body(options);
+		var vis = false;
+		var vis_list = [];
+		if(path == 'box'){
+			// let offset = new CANNON.Vec3(
+				
+			// );
+			let offset = new CANNON.Vec3(
+				mesh_pos.position_x, 
+				mesh_pos.position_y, 
+				mesh_pos.position_z,
+			);
+			let quat = new CANNON.Quaternion(mesh_pos.rotate_x, mesh_pos.rotate_y, mesh_pos.rotate_z, mesh_pos.rotate_w);
+			let box_shape = new CANNON.Box(new CANNON.Vec3(mesh_pos.scale_x, mesh_pos.scale_y, mesh_pos.scale_z));
+			collider.addShape(box_shape, offset, quat);
+			// collider.addShape(box_shape);
+			let basequat = new THREE.Quaternion().setFromEuler(new THREE.Euler(world.table_pos.rotate_x*3.1415927/180.));
+			// let rotate_quaternion = new THREE.Quaternion().multiplyQuaternions( basequat, quat);
+			// console.log("basequat: ", basequat);
+			// console.log("quat: ", quat);
+			// console.log("rotate_quaternion: ", rotate_quaternion);
+			var quaternion_x = basequat.x;
+			var quaternion_y = basequat.y;
+			var quaternion_z = basequat.z;
+			var quaternion_w = basequat.w;
+
+			collider.position.x = world.table_pos.position_x;
+			collider.position.y = world.table_pos.position_y;
+			collider.position.z = world.table_pos.position_z;
+			collider.quaternion.x = quaternion_x;
+			collider.quaternion.y = quaternion_y;
+			collider.quaternion.z = quaternion_z;
+			collider.quaternion.w = quaternion_w;
+			
+			world.physicsWorld.addBody(collider);
+			if (track){
+				world.pot = collider;
+				world.track_collider = collider;
+			}
+			console.log("add box collider");
+		}
+		else{
+		fetch(path+"center.json").then(response => {
+			return response.json();
+		}).then(json => {
+			let quaternion_x;
+			let quaternion_y;
+			let quaternion_z;
+			let quaternion_w;
+
+			let offset_list = [];
+
+			json.forEach((element, idx) => {
+				// console.log(idx)
+				var off_x = element[0];
+				var off_y = element[1];
+				var off_z = element[2];
+				let offset = new CANNON.Vec3(off_x, off_y, off_z);
+				offset_list.push(offset);
+			});
+			var sceneFile = path+"decomp.glb";
+
+			var loader = new GLTFLoader();
+			let world = this;
+			
+			let rotate_quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(mesh_pos.rotate_x*3.1415927/180.));
+			quaternion_x = rotate_quaternion.x;
+			quaternion_y = rotate_quaternion.y;
+			quaternion_z = rotate_quaternion.z;
+			quaternion_w = rotate_quaternion.w;
+
+			loader.load(
+				sceneFile,
+				function (gltf) {
+					gltf.scene.traverse(function (child) {
+						if ((child as THREE.Mesh).isMesh) {
+							var seq_n = parseInt(child.name.substring(5));
+							var offset = offset_list[seq_n];
+							// console.log(offset);
+							child = (child as THREE.Mesh);
+							// console.log((child as THREE.Mesh).geometry.getAttribute('position'))
+							let phys = new ConvexCollider(child, {"friction": 1000000});
+							phys.body.shapes.forEach((shape) => {
+								collider.addShape(shape, offset);
+							});
+							if (vis){
+								let child_c = (child as THREE.Mesh).clone();
+								var trans_matrix = new THREE.Matrix4().makeTranslation(offset.x, offset.y, offset.z);
+								var trans_matrix2 = new THREE.Matrix4().makeTranslation(mesh_pos.position_x, mesh_pos.position_y, mesh_pos.position_z);
+								var rotate_matrix = new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion(quaternion_x, quaternion_y, quaternion_z, quaternion_w));
+								child_c.matrixAutoUpdate=false;
+								child_c.matrix = new THREE.Matrix4().multiplyMatrices(trans_matrix2,new THREE.Matrix4().multiplyMatrices(rotate_matrix,trans_matrix));
+								child_c.material = new THREE.LineBasicMaterial({'linewidth': 0.001});
+								world.graphicsWorld.add(child_c);
+							}
+						}
+					})
+				},
+				(xhr) => {
+				},
+				(error) => {
+					console.log(error);
+				}
+			);
+
+			
+			collider.position.x = mesh_pos.position_x;
+			collider.position.y = mesh_pos.position_y;
+			collider.position.z = mesh_pos.position_z;
+			collider.quaternion.x = quaternion_x;
+			collider.quaternion.y = quaternion_y;
+			collider.quaternion.z = quaternion_z;
+			collider.quaternion.w = quaternion_w;
+
+			let quat = new THREE.Quaternion(rotate_quaternion.x, rotate_quaternion.y, rotate_quaternion.z, rotate_quaternion.w);
+			let euler = new THREE.Euler().setFromQuaternion(quat);
+			// console.log(euler.x/Math.PI * 180, euler.y/Math.PI * 180, euler.z/Math.PI * 180);
+
+			world.physicsWorld.addBody(collider);
+
+			
+		});
+		}
+	}
 
 	private init_convex_collision_box_center(world: World, path: string, mesh_pos, mesh_pos_, options, track: boolean): void {
 		let collider = new CANNON.Body(options);
@@ -1033,10 +1221,10 @@ export class World
 	public update(timeStep: number, unscaledTimeStep: number): void
 	{	
 		// console.log(this.shoot_cnt, this.hit_cnt);
-		var info_str = "<br>&nbsp;&nbsp;&nbsp;Hit the Vase!: ";
+		var info_str = "<br>&nbsp;Hit the Vase!: ";
 		var gameinfo = document.getElementById("gameinfo");
-		info_str = info_str + "<br>&nbsp;&nbsp;&nbsp;Score: "+(this.hit_cnt*100).toString();
-		info_str = info_str + "<br>&nbsp;&nbsp;&nbsp;Balls shooted: "+(this.shoot_cnt).toString();
+		info_str = info_str + "<br>&nbsp;Score: "+(this.hit_cnt*100).toString();
+		info_str = info_str + "<br>&nbsp;Balls shooted: "+(this.shoot_cnt).toString();
 		gameinfo.innerHTML = info_str;
 
 		if(!this.game_finished && this.msec > 30*1000){
@@ -1275,7 +1463,7 @@ export class World
 
 		this.renderer.shadowMap.enabled = false;
 
-		if (this.track_sp != null && this.track_collider != null){
+		if (false && this.track_sp != null && this.track_collider != null){
 			let track_collider_cur = new THREE.Matrix4().multiplyMatrices(
 				new THREE.Matrix4().makeTranslation(this.track_collider.position.x, this.track_collider.position.y, this.track_collider.position.z),
 				new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion(this.track_collider.quaternion.x, this.track_collider.quaternion.y, this.track_collider.quaternion.z, this.track_collider.quaternion.w))
@@ -1349,10 +1537,6 @@ export class World
 			(this.track_sp.material as THREE.RawShaderMaterial).uniforms['c2w_T']['value'] = c2w_rot_inv.clone().transpose();
 		}
 
-
-		
-
-
 	}
 
 	public updatePhysics(timeStep: number): void
@@ -1384,15 +1568,19 @@ export class World
 				if (this.shoot_sec == 0){
 					this.shoot = false;
 					this.shoot_cnt += 1;
+					var radius = 0.05;
 					let ball = new SphereCollider({
-						'mass': 10,
+						'mass': 0.05,
 						'position': new CANNON.Vec3(char.position.x+char.orientation.x*0.2, char.position.y-0.4, char.position.z+char.orientation.z*0.2),
-						'radius': 0.05,
+						'radius': radius,
 					});
-					ball.body.velocity = new CANNON.Vec3(char.orientation.x*10, 0, char.orientation.z*10);
+					ball.body.velocity = new CANNON.Vec3(char.orientation.x*2, 0, char.orientation.z*2);
 					this.physicsWorld.addBody(ball.body);
-					let ball_show_geometry = new THREE.SphereGeometry( 0.05, 32, 16 ); 
-					let ball_show_material = new THREE.MeshBasicMaterial( { color: 0xffff00 } ); 
+					let ball_show_geometry = new THREE.SphereGeometry( radius, 32, 16 ); 
+					let texture_link="https://ts1.cn.mm.bing.net/th/id/R-C.c68c92f462a268941dc82fbcf7feeaf6?rik=2uhqLN74I7XiYA&riu=http%3a%2f%2fpreviewcf.turbosquid.com%2fPreview%2f2014%2f08%2f01__23_25_03%2fFootballtexturemapHighqualitythumbnail05.jpge202049c-2dab-4cb2-b84c-e433ba38ee27Large.jpg&ehk=Ovw8WPSw6fMJVpeAnh%2fBLoiZr74qBnyY6hu0BaObZ3A%3d&risl=&pid=ImgRaw&r=0"
+					const loader = new THREE.TextureLoader();
+					const texture = loader.load(texture_link);
+					let ball_show_material = new THREE.MeshBasicMaterial({map: texture});
 					let ball_show = new THREE.Mesh( ball_show_geometry, ball_show_material ); 
 					this.balls.push([ball.body, ball_show]);
 					this.balls_hit.push(false);
@@ -2575,24 +2763,24 @@ export class World
 		// 	{
 		// 		scope.cameraOperator.setSensitivity(value, value * 0.8);
 		// 	});
-		// settingsFolder.add(this.params, 'Debug_Physics')
-		// 	.onChange((enabled) =>
-		// 	{
-		// 		if (enabled)
-		// 		{
-		// 			this.cannonDebugRenderer = new CannonDebugRenderer( this.graphicsWorld, this.physicsWorld );
-		// 		}
-		// 		else
-		// 		{
-		// 			this.cannonDebugRenderer.clearMeshes();
-		// 			this.cannonDebugRenderer = undefined;
-		// 		}
+		settingsFolder.add(this.params, 'Debug_Physics')
+			.onChange((enabled) =>
+			{
+				if (enabled)
+				{
+					this.cannonDebugRenderer = new CannonDebugRenderer( this.graphicsWorld, this.physicsWorld );
+				}
+				else
+				{
+					this.cannonDebugRenderer.clearMeshes();
+					this.cannonDebugRenderer = undefined;
+				}
 
-		// 		scope.characters.forEach((char) =>
-		// 		{
-		// 			char.raycastBox.visible = enabled;
-		// 		});
-		// 	});
+				scope.characters.forEach((char) =>
+				{
+					char.raycastBox.visible = enabled;
+				});
+			});
 		settingsFolder.add(this.params, 'Debug_FPS')
 			.onChange((enabled) =>
 			{

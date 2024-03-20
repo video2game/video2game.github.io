@@ -68,7 +68,7 @@ export class Character extends THREE.Object3D implements IWorldEntity
 	public rayCastLength: number = 0.57;
 	public raySafeOffset: number = 0.03;
 	public wantsToJump: boolean = false;
-	public initJumpSpeed: number = 0.05;
+	public initJumpSpeed: number = 0.2;
 	public groundImpactData: GroundImpactData = new GroundImpactData();
 	public raycastBox: THREE.Mesh;
 	
@@ -598,7 +598,7 @@ export class Character extends THREE.Object3D implements IWorldEntity
 	public jump(initJumpSpeed: number = -1): void
 	{
 		this.wantsToJump = true;
-		this.initJumpSpeed = initJumpSpeed;
+		// this.initJumpSpeed = initJumpSpeed;
 	}
 
 	public findVehicleToEnter(wantsToDrive: boolean): void
@@ -922,7 +922,8 @@ export class Character extends THREE.Object3D implements IWorldEntity
 			{
 				// Flatten velocity
 				body.velocity.y = 0;
-				let speed = Math.max(character.velocitySimulator.position.length() * 4, character.initJumpSpeed);
+				// let speed = character.initJumpSpeed;
+				let speed = Math.max(character.velocitySimulator.position.length(), character.initJumpSpeed);
 				body.velocity = Utils.cannonVector(character.orientation.clone().multiplyScalar(speed));
 			}
 			else {
@@ -933,7 +934,7 @@ export class Character extends THREE.Object3D implements IWorldEntity
 			}
 
 			// Add positive vertical velocity 
-			body.velocity.y += 4;
+			body.velocity.y += 1;
 			// Move above ground by 2x safe offset value
 			body.position.y += character.raySafeOffset * 2;
 			// Reset flag

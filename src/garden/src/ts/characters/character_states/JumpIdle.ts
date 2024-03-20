@@ -29,7 +29,7 @@ export class JumpIdle extends CharacterStateBase implements ICharacterState
 		if (this.alreadyJumped)
 		{
 			this.character.setCameraRelativeOrientationTarget();
-			this.character.setArcadeVelocityTarget(this.anyDirection() ? 0.8 : 0);
+			this.character.setArcadeVelocityTarget(this.anyDirection() ? 0.04 : 0);
 		}
 
 		// Physically jump
