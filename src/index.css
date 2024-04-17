@@ -2,7 +2,15 @@ body {
   font-family: 'Noto Sans', sans-serif;
 }
 
-
+.bibtexsection {
+  font-family: "Courier",monospace;
+  font-size:14px;
+  white-space:pre;
+  background-color: #f4f4f4;
+      margin-left: auto;
+    margin-right: auto;
+  text-align:left;
+}
 .footer .icon-link {
     font-size: 25px;
     color: #000;
